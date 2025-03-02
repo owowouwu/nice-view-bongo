@@ -1,4 +1,5 @@
 # nice-view-mod
+
 A copy of the nice!view shield from the official ZMK firmware as a ZMK module for the purposes of easily customizing.
 As provided, it should function exactly like the current nice!view shield present in the ZMK firmware.
 
@@ -17,19 +18,19 @@ To use this module, first add it to your config/west.yml by adding a new entry t
 ```yml
 manifest:
   remotes:
-      # zmk official
+    # zmk official
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
-    - name: gpeye                         #new entry
-      url-base: https://github.com/GPeye  #new entry
+    - name: dsifry #new entry
+      url-base: https://github.com/dsifry #new entry
   projects:
     - name: zmk
       remote: zmkfirmware
       revision: main
       import: app/west.yml
-    - name: nice-view-mod                 #new entry
-      remote: gpeye                       #new entry
-      revision: main                      #new entry
+    - name: nice-view-mod #new entry
+      remote: dsifry #new entry
+      revision: main #new entry
   self:
     path: config
 ```
