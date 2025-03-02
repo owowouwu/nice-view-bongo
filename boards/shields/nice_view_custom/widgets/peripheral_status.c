@@ -26,6 +26,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 LV_IMG_DECLARE(balloon);
 LV_IMG_DECLARE(mountain);
 LV_IMG_DECLARE(jelllyfish);
+LV_IMG_DECLARE(seahorse);
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -116,8 +117,9 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
     lv_obj_t *art = lv_img_create(widget->obj);
-    bool random = sys_rand32_get() & 1;
-    lv_img_set_src(art, random ? &jelllyfish : &balloon);
+    uint32_t random = sys_rand32_get() % 4;  // Get random number between 0-3
+    const lv_img_dsc_t* images[] = {&balloon, &mountain, &jelllyfish, &seahorse};
+    lv_img_set_src(art, images[random]);
     lv_obj_align(art, LV_ALIGN_TOP_LEFT, 0, 0);
 
     sys_slist_append(&widgets, &widget->node);
