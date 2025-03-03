@@ -464,13 +464,13 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_BONGOCATC
 };
 
 const lv_img_dsc_t bongocatcasual1 = {
-  .header.cf = LV_IMG_CF_INDEXED_1BIT,
-  .header.always_zero = 0,
-  .header.reserved = 0,
-  .header.w = 68,
-  .header.h = 40,
-  .data_size = 368,
-  .data = bongocatcasual1_map,
+    .header.cf = LV_IMG_CF_INDEXED_1BIT,
+    .header.always_zero = 0,
+    .header.reserved = 0,
+    .header.w = 68,
+    .header.h = 40,
+    .data_size = 368,
+    .data = bongocatcasual1_map,
 };
 
 #ifndef LV_ATTRIBUTE_IMG_BONGOCATCASUAL2
