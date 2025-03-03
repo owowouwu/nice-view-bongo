@@ -353,11 +353,11 @@ const lv_img_dsc_t seahorse = {
 #define LV_ATTRIBUTE_MEM_ALIGN
 #endif
 
-#ifndef LV_ATTRIBUTE_IMG_BONGOCATREST
-#define LV_ATTRIBUTE_IMG_BONGOCATREST
+#ifndef LV_ATTRIBUTE_IMG_BONGOCATREST0
+#define LV_ATTRIBUTE_IMG_BONGOCATREST0
 #endif
 
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_BONGOCATREST uint8_t BONGOCATREST_map[] = {
+const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_bongocatrest0 uint8_t bongocatrest0_map[] = {
   0xff, 0xff, 0xff, 0xff, 	/*Color of index 0*/
   0x00, 0x00, 0x00, 0xff, 	/*Color of index 1*/
 
@@ -403,14 +403,14 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_BONGOCATR
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
 };
 
-const lv_img_dsc_t BONGOCATREST = {
+const lv_img_dsc_t bongocatrest0 = {
   .header.cf = LV_IMG_CF_INDEXED_1BIT,
   .header.always_zero = 0,
   .header.reserved = 0,
   .header.w = 68,
   .header.h = 40,
   .data_size = 368,
-  .data = BONGOCATREST_map,
+  .data = bongocatrest0_map,
 };
 // Bongo cat images - 68x40 pixels
 
