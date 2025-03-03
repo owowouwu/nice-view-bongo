@@ -45,13 +45,11 @@ struct wpm_status_state {
     uint8_t wpm;
 };
 
-static const lv_img_dsc_t* const bongo_images[] = {
-    &bongocatrest0,
-    &bongocatcasual1,
-    &bongocatcasual2,
-    &bongocatfast1,
-    &bongocatfast2
-};
+LV_IMG_DECLARE(bongocatrest0);
+LV_IMG_DECLARE(bongocatcasual1);
+LV_IMG_DECLARE(bongocatcasual2);
+LV_IMG_DECLARE(bongocatfast1);
+LV_IMG_DECLARE(bongocatfast2);
 
 static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
     lv_obj_t *canvas = lv_obj_get_child(widget, 0);
