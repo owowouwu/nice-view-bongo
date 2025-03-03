@@ -25,6 +25,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/endpoints.h>
 #include <zmk/keymap.h>
 #include <zmk/wpm.h>
+#include "art.h"
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -168,7 +169,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     // Determine which animation frame to use
     const lv_img_dsc_t *current_frame;
     if (recent_wpm == 0) {
-        current_frame = &BONGOCATREST;
+        current_frame = &bongocatrest0;
     } else if (recent_wpm < 20) {
         current_frame = (state->wpm[9] % 2) ? &bongocatcasual1 : &bongocatcasual2;
     } else {
