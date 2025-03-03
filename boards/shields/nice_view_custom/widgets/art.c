@@ -412,26 +412,6 @@ const lv_img_dsc_t bongocatrest0 = {
   .data_size = 368,
   .data = bongocatrest0_map,
 };
-// Bongo cat images - 68x40 pixels
-
-#ifdef __has_include
-    #if __has_include("lvgl.h")
-        #ifndef LV_LVGL_H_INCLUDE_SIMPLE
-            #define LV_LVGL_H_INCLUDE_SIMPLE
-        #endif
-    #endif
-#endif
-
-#if defined(LV_LVGL_H_INCLUDE_SIMPLE)
-    #include "lvgl.h"
-#else
-    #include "lvgl/lvgl.h"
-#endif
-
-
-#ifndef LV_ATTRIBUTE_MEM_ALIGN
-#define LV_ATTRIBUTE_MEM_ALIGN
-#endif
 
 #ifndef LV_ATTRIBUTE_IMG_BONGOCATCASUAL1
 #define LV_ATTRIBUTE_IMG_BONGOCATCASUAL1
@@ -493,25 +473,6 @@ const lv_img_dsc_t bongocatcasual1 = {
   .data = bongocatcasual1_map,
 };
 
-#ifdef __has_include
-    #if __has_include("lvgl.h")
-        #ifndef LV_LVGL_H_INCLUDE_SIMPLE
-            #define LV_LVGL_H_INCLUDE_SIMPLE
-        #endif
-    #endif
-#endif
-
-#if defined(LV_LVGL_H_INCLUDE_SIMPLE)
-    #include "lvgl.h"
-#else
-    #include "lvgl/lvgl.h"
-#endif
-
-
-#ifndef LV_ATTRIBUTE_MEM_ALIGN
-#define LV_ATTRIBUTE_MEM_ALIGN
-#endif
-
 #ifndef LV_ATTRIBUTE_IMG_BONGOCATCASUAL2
 #define LV_ATTRIBUTE_IMG_BONGOCATCASUAL2
 #endif
@@ -572,26 +533,6 @@ const lv_img_dsc_t bongocatcasual2 = {
   .data = bongocatcasual2_map,
 };
 
-
-#ifdef __has_include
-    #if __has_include("lvgl.h")
-        #ifndef LV_LVGL_H_INCLUDE_SIMPLE
-            #define LV_LVGL_H_INCLUDE_SIMPLE
-        #endif
-    #endif
-#endif
-
-#if defined(LV_LVGL_H_INCLUDE_SIMPLE)
-    #include "lvgl.h"
-#else
-    #include "lvgl/lvgl.h"
-#endif
-
-
-#ifndef LV_ATTRIBUTE_MEM_ALIGN
-#define LV_ATTRIBUTE_MEM_ALIGN
-#endif
-
 #ifndef LV_ATTRIBUTE_IMG_BONGOCATFAST1
 #define LV_ATTRIBUTE_IMG_BONGOCATFAST1
 #endif
@@ -651,26 +592,6 @@ const lv_img_dsc_t bongocatfast1 = {
   .data_size = 368,
   .data = bongocatfast1_map,
 };
-
-
-#ifdef __has_include
-    #if __has_include("lvgl.h")
-        #ifndef LV_LVGL_H_INCLUDE_SIMPLE
-            #define LV_LVGL_H_INCLUDE_SIMPLE
-        #endif
-    #endif
-#endif
-
-#if defined(LV_LVGL_H_INCLUDE_SIMPLE)
-    #include "lvgl.h"
-#else
-    #include "lvgl/lvgl.h"
-#endif
-
-
-#ifndef LV_ATTRIBUTE_MEM_ALIGN
-#define LV_ATTRIBUTE_MEM_ALIGN
-#endif
 
 #ifndef LV_ATTRIBUTE_IMG_BONGOCATFAST2
 #define LV_ATTRIBUTE_IMG_BONGOCATFAST2
