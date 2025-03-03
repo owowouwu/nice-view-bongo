@@ -357,7 +357,7 @@ const lv_img_dsc_t seahorse = {
 #define LV_ATTRIBUTE_IMG_BONGOCATREST0
 #endif
 
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_bongocatrest0 uint8_t bongocatrest0_map[] = {
+const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_BONGOCATREST0 uint8_t bongocatrest0_map[] = {
   0xff, 0xff, 0xff, 0xff, 	/*Color of index 0*/
   0x00, 0x00, 0x00, 0xff, 	/*Color of index 1*/
 
