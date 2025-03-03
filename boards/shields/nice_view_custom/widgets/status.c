@@ -25,6 +25,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/endpoints.h>
 #include <zmk/keymap.h>
 #include <zmk/wpm.h>
+#include "art.h"
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -137,31 +138,52 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_18, LV_TEXT_ALIGN_CENTER);
     lv_draw_label_dsc_t label_dsc_black;
     init_label_dsc(&label_dsc_black, LVGL_BACKGROUND, &lv_font_montserrat_18, LV_TEXT_ALIGN_CENTER);
+    lv_draw_line_dsc_t line_dsc;
+    init_line_dsc(&line_dsc, LVGL_FOREGROUND, 1);
 
     // Fill background
     lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
 
-    // Draw circles
-    int circle_offsets[5][2] = {
-        {13, 13}, {55, 13}, {34, 34}, {13, 55}, {55, 55},
-    };
+    // Draw single BLE profile circle at the top
+    bool selected = true;
+    int x = 34, y = 13;
 
-    for (int i = 0; i < 5; i++) {
-        bool selected = i == state->active_profile_index;
+    lv_canvas_draw_arc(canvas, x, y, 13, 0, 360, &arc_dsc);
 
-        lv_canvas_draw_arc(canvas, circle_offsets[i][0], circle_offsets[i][1], 13, 0, 360,
-                           &arc_dsc);
-
-        if (selected) {
-            lv_canvas_draw_arc(canvas, circle_offsets[i][0], circle_offsets[i][1], 9, 0, 359,
-                               &arc_dsc_filled);
-        }
-
-        char label[2];
-        snprintf(label, sizeof(label), "%d", i + 1);
-        lv_canvas_draw_text(canvas, circle_offsets[i][0] - 8, circle_offsets[i][1] - 10, 16,
-                            (selected ? &label_dsc_black : &label_dsc), label);
+    if (selected) {
+        lv_canvas_draw_arc(canvas, x, y, 9, 0, 359, &arc_dsc_filled);
     }
+
+    char label[2];
+    snprintf(label, sizeof(label), "%d", state->active_profile_index + 1);
+    lv_canvas_draw_text(canvas, x - 8, y - 10, 16,
+                        (selected ? &label_dsc_black : &label_dsc), label);
+
+    // Calculate average WPM over last 5 seconds
+    int recent_wpm = 0;
+    for (int i = 5; i < 10; i++) {
+        recent_wpm += state->wpm[i];
+    }
+    recent_wpm /= 5;
+
+    // Determine which animation frame to use
+    const lv_img_dsc_t *current_frame;
+    if (recent_wpm == 0) {
+        current_frame = &BONGOCATREST;
+    } else if (recent_wpm < 20) {
+        current_frame = (state->wpm[9] % 2) ? &bongocatcasual1 : &bongocatcasual2;
+    } else {
+        current_frame = (state->wpm[9] % 2) ? &bongocatfast1 : &bongocatfast2;
+    }
+
+    // Draw bongo cat animation frame
+    lv_canvas_draw_rect(canvas, 0, 28, 68, 40, &rect_white_dsc);
+    lv_canvas_draw_rect(canvas, 1, 29, 66, 38, &rect_black_dsc);
+    
+    // Draw the current frame
+    lv_draw_img_dsc_t img_dsc;
+    lv_draw_img_dsc_init(&img_dsc);
+    lv_canvas_draw_img(canvas, 0, 28, current_frame, &img_dsc);
 
     // Rotate canvas
     rotate_canvas(canvas, cbuf);
