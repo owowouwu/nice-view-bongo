@@ -59,6 +59,8 @@ LV_IMG_DECLARE(bongocatcasual2);
 LV_IMG_DECLARE(bongocatfast1);
 LV_IMG_DECLARE(bongocatfast2);
 
+static uint8_t frame_counter = 0;
+
 static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
     lv_obj_t *canvas = lv_obj_get_child(widget, 0);
 
@@ -182,12 +184,27 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
 
     // Determine which animation frame to use
     const lv_img_dsc_t *current_frame;
-    if (recent_wpm == 0) {
+    
+    if (state->key_pressed) {
+        // On keypress, increment frame counter and select appropriate animation
+        frame_counter++;
+        if (recent_wpm == 0) {
+            current_frame = &bongocatrest0;
+        } else if (recent_wpm <= 30) {
+            current_frame = (frame_counter % 2) ? &bongocatcasual1 : &bongocatcasual2;
+        } else {
+            current_frame = (frame_counter % 2) ? &bongocatfast1 : &bongocatfast2;
+        }
+    } else if (recent_wpm == 0) {
+        // When WPM drops to zero, show rest frame
         current_frame = &bongocatrest0;
-    } else if (recent_wpm < 20) {
-        current_frame = (state->wpm[9] % 2) ? &bongocatcasual1 : &bongocatcasual2;
     } else {
-        current_frame = (state->wpm[9] % 2) ? &bongocatfast1 : &bongocatfast2;
+        // Keep previous frame when no keypress
+        if (recent_wpm <= 30) {
+            current_frame = (frame_counter % 2) ? &bongocatcasual1 : &bongocatcasual2;
+        } else {
+            current_frame = (frame_counter % 2) ? &bongocatfast1 : &bongocatfast2;
+        }
     }
 
     // Draw bongo cat animation frame
@@ -584,7 +601,6 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_BONGOCATC
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc, 0x0e, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xe0, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x70, 
-  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
