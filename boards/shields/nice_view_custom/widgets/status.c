@@ -386,30 +386,40 @@ static void wpm_status_update_cb(struct wpm_status_state state) {
 
 struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
     static uint8_t wpm_history[10] = {0};  // Keep track of history between calls
+    static uint8_t current_wpm = 0;        // Keep track of current WPM between calls
     
     const struct zmk_wpm_state_changed *wpm_ev = as_zmk_wpm_state_changed(eh);
     const struct zmk_position_state_changed *pos_ev = as_zmk_position_state_changed(eh);
     
-    // Update history if this is a WPM event
+    // Update WPM if this is a WPM event
     if (wpm_ev != NULL) {
+        current_wpm = wpm_ev->state;
         for (int i = 0; i < 9; i++) {
             wpm_history[i] = wpm_history[i + 1];
         }
-        wpm_history[9] = wpm_ev->state;
+        wpm_history[9] = current_wpm;
     }
 
-    bool key_pressed = false;
+    // Update key state if this is a position event
     if (pos_ev != NULL) {
-        key_pressed = pos_ev->state > 0;  // true when key is pressed
+        return (struct wpm_status_state){
+            .wpm = current_wpm,
+            .wpm_history = {wpm_history[0], wpm_history[1], wpm_history[2], wpm_history[3],
+                           wpm_history[4], wpm_history[5], wpm_history[6], wpm_history[7],
+                           wpm_history[8], wpm_history[9]},
+            .animation_state = current_anim_state,
+            .key_pressed = pos_ev->state > 0  // true when key is pressed
+        };
     }
 
+    // Return current state for WPM events
     return (struct wpm_status_state){
-        .wpm = (wpm_ev != NULL) ? wpm_ev->state : zmk_wpm_get_state(),
+        .wpm = current_wpm,
         .wpm_history = {wpm_history[0], wpm_history[1], wpm_history[2], wpm_history[3],
                        wpm_history[4], wpm_history[5], wpm_history[6], wpm_history[7],
                        wpm_history[8], wpm_history[9]},
         .animation_state = current_anim_state,
-        .key_pressed = key_pressed
+        .key_pressed = false
     };
 }
 
