@@ -61,6 +61,15 @@ LV_IMG_DECLARE(bongocatfast2);
 
 static uint8_t frame_counter = 0;
 
+struct status_state {
+    struct zmk_endpoint_instance selected_endpoint;
+    int active_profile_index;
+    bool active_profile_connected;
+    bool active_profile_bonded;
+    uint8_t wpm[10];
+    bool key_pressed;
+};
+
 static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
     lv_obj_t *canvas = lv_obj_get_child(widget, 0);
 
@@ -345,6 +354,7 @@ static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_s
         widget->state.wpm[i] = widget->state.wpm[i + 1];
     }
     widget->state.wpm[9] = state.wpm;
+    widget->state.key_pressed = state.key_pressed;
 
     // Calculate average WPM over last 5 seconds
     int recent_wpm = 0;
@@ -601,6 +611,7 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_BONGOCATC
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc, 0x0e, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xe0, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x70, 
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
