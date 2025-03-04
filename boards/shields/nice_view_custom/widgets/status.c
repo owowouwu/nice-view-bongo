@@ -140,7 +140,7 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
     rotate_canvas(canvas, cbuf);
 }
 
-static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct wpm_status_state *state) {
+static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
     lv_obj_t *canvas = lv_obj_get_child(widget, 1);
 
     lv_draw_rect_dsc_t rect_black_dsc;
@@ -346,7 +346,6 @@ static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_s
         widget->state.wpm[i] = widget->state.wpm[i + 1];
     }
     widget->state.wpm[9] = state.wpm;
-    widget->state.key_pressed = state.key_pressed;
 
     // Calculate average WPM over last 5 seconds
     int recent_wpm = 0;
@@ -355,7 +354,7 @@ static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_s
     }
     recent_wpm /= 5;
 
-    // Update animation state based on WPM and key state
+    // Update animation state based on WPM and keypress state
     enum anim_state new_state;
     if (recent_wpm == 0 && !state.key_pressed) {
         new_state = ANIM_STATE_REST;
@@ -368,6 +367,7 @@ static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_s
     if (new_state != current_anim_state || state.key_pressed) {
         current_anim_state = new_state;
         // Force redraw when animation state changes or key is pressed
+        frame_counter++;  // Increment frame counter on state change or keypress
         draw_middle(widget->obj, widget->cbuf2, &widget->state);
     } else {
         // Regular WPM update
