@@ -61,7 +61,6 @@ LV_IMG_DECLARE(bongocatcasual2);
 LV_IMG_DECLARE(bongocatfast1);
 LV_IMG_DECLARE(bongocatfast2);
 
-static uint8_t frame_counter = 0;
 static bool key_pressed = false;
 static bool key_released = false;
 static bool use_first_frame = true;  // Track which frame to use in the animation sequence
