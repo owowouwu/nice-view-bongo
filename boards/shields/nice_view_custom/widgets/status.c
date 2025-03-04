@@ -179,7 +179,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     // Calculate average WPM over last 5 seconds
     int recent_wpm = 0;
     for (int i = 5; i < 10; i++) {
-        recent_wpm += state->wpm_history[i];
+        recent_wpm += state->wpm[i];
     }
     recent_wpm /= 5;
 
