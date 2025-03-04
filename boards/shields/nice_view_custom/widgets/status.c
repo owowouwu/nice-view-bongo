@@ -61,6 +61,7 @@ LV_IMG_DECLARE(bongocatfast1);
 LV_IMG_DECLARE(bongocatfast2);
 
 static uint8_t frame_counter = 0;
+static bool current_key_pressed = false;
 
 static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
     lv_obj_t *canvas = lv_obj_get_child(widget, 0);
@@ -186,7 +187,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     // Determine which animation frame to use
     const lv_img_dsc_t *current_frame;
     
-    if (state->key_pressed) {
+    if (current_key_pressed) {
         // On keypress, increment frame counter and select appropriate animation
         frame_counter++;
         if (recent_wpm == 0) {
@@ -346,6 +347,9 @@ static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_s
         widget->state.wpm[i] = widget->state.wpm[i + 1];
     }
     widget->state.wpm[9] = state.wpm;
+
+    // Update the current keypress state
+    current_key_pressed = state.key_pressed;
 
     // Calculate average WPM over last 5 seconds
     int recent_wpm = 0;
