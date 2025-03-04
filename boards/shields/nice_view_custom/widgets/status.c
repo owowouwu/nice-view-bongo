@@ -42,7 +42,14 @@ struct layer_status_state {
 
 struct wpm_status_state {
     uint8_t wpm;
+    uint8_t animation_state;
 };
+
+enum anim_state {
+    ANIM_STATE_REST,
+    ANIM_STATE_CASUAL,
+    ANIM_STATE_FAST
+} current_anim_state;
 
 LV_IMG_DECLARE(bongocatrest0);
 LV_IMG_DECLARE(bongocatcasual1);
@@ -314,12 +321,37 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_layer_status, struct layer_status_state, laye
 ZMK_SUBSCRIPTION(widget_layer_status, zmk_layer_state_changed);
 
 static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_state state) {
+    // Update WPM array
     for (int i = 0; i < 9; i++) {
         widget->state.wpm[i] = widget->state.wpm[i + 1];
     }
     widget->state.wpm[9] = state.wpm;
 
-    draw_top(widget->obj, widget->cbuf, &widget->state);
+    // Calculate average WPM over last 5 seconds
+    int recent_wpm = 0;
+    for (int i = 5; i < 10; i++) {
+        recent_wpm += widget->state.wpm[i];
+    }
+    recent_wpm /= 5;
+
+    // Update animation state based on WPM
+    enum anim_state new_state;
+    if (recent_wpm == 0) {
+        new_state = ANIM_STATE_REST;
+    } else if (recent_wpm < 20) {
+        new_state = ANIM_STATE_CASUAL;
+    } else {
+        new_state = ANIM_STATE_FAST;
+    }
+
+    if (new_state != current_anim_state) {
+        current_anim_state = new_state;
+        // Force redraw when animation state changes
+        draw_middle(widget->obj, widget->cbuf2, &widget->state);
+    } else {
+        // Regular WPM update
+        draw_top(widget->obj, widget->cbuf, &widget->state);
+    }
 }
 
 static void wpm_status_update_cb(struct wpm_status_state state) {
@@ -328,11 +360,15 @@ static void wpm_status_update_cb(struct wpm_status_state state) {
 }
 
 struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
-    return (struct wpm_status_state){.wpm = zmk_wpm_get_state()};
-};
+    const struct zmk_wpm_state_changed *ev = as_zmk_wpm_state_changed(eh);
+    return (struct wpm_status_state){
+        .wpm = (ev != NULL) ? ev->state : zmk_wpm_get_state(),
+        .animation_state = current_anim_state
+    };
+}
 
-ZMK_DISPLAY_WIDGET_LISTENER(widget_wpm_status, struct wpm_status_state, wpm_status_update_cb,
-                            wpm_status_get_state)
+ZMK_DISPLAY_WIDGET_LISTENER(widget_wpm_status, struct wpm_status_state, 
+                          wpm_status_update_cb, wpm_status_get_state)
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_wpm_state_changed);
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
