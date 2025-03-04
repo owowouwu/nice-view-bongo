@@ -1,6 +1,6 @@
 # nice-view-mod
 
-A copy of the nice!view shield from the official ZMK firmware as a ZMK module for the purposes of easily customizing.
+This is a copy of the nice!view shield from the official ZMK firmware as a ZMK module that changes the shields to include a bongo cat animation on the main board, and allows for new artwork on the peripheral board.
 As provided, it should function exactly like the current nice!view shield present in the ZMK firmware.
 
 This module is meant to be added to an existing forked customized keymap repo like [this one for the Urchin board](https://github.com/duckyb/zmk-urchin) or [this one for the Chocofi](https://github.com/beekeeb/zmk-config-corne-chocofi-with-niceview) with build actions set up to build your firmware with github actions and is of course meant for boards with the nice!view. Please check for such forkable repos for your board if you do not currently have one.
