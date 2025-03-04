@@ -25,6 +25,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/endpoints.h>
 #include <zmk/keymap.h>
 #include <zmk/wpm.h>
+#include <zmk/events/position_state_changed.h>
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -43,6 +44,7 @@ struct layer_status_state {
 struct wpm_status_state {
     uint8_t wpm;
     uint8_t animation_state;
+    bool key_pressed;
 };
 
 enum anim_state {
@@ -334,9 +336,9 @@ static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_s
     }
     recent_wpm /= 5;
 
-    // Update animation state based on WPM
+    // Update animation state based on WPM and key state
     enum anim_state new_state;
-    if (recent_wpm == 0) {
+    if (recent_wpm == 0 && !state.key_pressed) {
         new_state = ANIM_STATE_REST;
     } else if (recent_wpm < 20) {
         new_state = ANIM_STATE_CASUAL;
@@ -344,9 +346,9 @@ static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_s
         new_state = ANIM_STATE_FAST;
     }
 
-    if (new_state != current_anim_state) {
+    if (new_state != current_anim_state || state.key_pressed) {
         current_anim_state = new_state;
-        // Force redraw when animation state changes
+        // Force redraw when animation state changes or key is pressed
         draw_middle(widget->obj, widget->cbuf2, &widget->state);
     } else {
         // Regular WPM update
@@ -360,16 +362,25 @@ static void wpm_status_update_cb(struct wpm_status_state state) {
 }
 
 struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
-    const struct zmk_wpm_state_changed *ev = as_zmk_wpm_state_changed(eh);
+    const struct zmk_wpm_state_changed *wpm_ev = as_zmk_wpm_state_changed(eh);
+    const struct zmk_position_state_changed *pos_ev = as_zmk_position_state_changed(eh);
+    
+    bool key_pressed = false;
+    if (pos_ev != NULL) {
+        key_pressed = pos_ev->state > 0;  // true when key is pressed
+    }
+
     return (struct wpm_status_state){
-        .wpm = (ev != NULL) ? ev->state : zmk_wpm_get_state(),
-        .animation_state = current_anim_state
+        .wpm = (wpm_ev != NULL) ? wpm_ev->state : zmk_wpm_get_state(),
+        .animation_state = current_anim_state,
+        .key_pressed = key_pressed
     };
 }
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_wpm_status, struct wpm_status_state, 
                           wpm_status_update_cb, wpm_status_get_state)
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_wpm_state_changed);
+ZMK_SUBSCRIPTION(widget_wpm_status, zmk_position_state_changed);
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
@@ -573,7 +584,6 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_BONGOCATC
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc, 0x0e, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xe0, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x70, 
-  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
