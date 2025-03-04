@@ -42,9 +42,10 @@ struct layer_status_state {
 };
 
 struct wpm_status_state {
-    uint8_t wpm;
-    uint8_t animation_state;
-    bool key_pressed;
+    uint8_t wpm;                    // Current WPM
+    uint8_t wpm_history[10];        // Historical WPM values
+    uint8_t animation_state;        // Current animation state
+    bool key_pressed;              // Keypress state
 };
 
 enum anim_state {
@@ -351,15 +352,18 @@ ZMK_SUBSCRIPTION(widget_layer_status, zmk_layer_state_changed);
 static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_state state) {
     // Update WPM array
     for (int i = 0; i < 9; i++) {
-        widget->state.wpm[i] = widget->state.wpm[i + 1];
+        state.wpm_history[i] = state.wpm_history[i + 1];
     }
-    widget->state.wpm[9] = state.wpm;
+    state.wpm_history[9] = state.wpm;
+
+    // Update widget state
+    memcpy(widget->state.wpm, state.wpm_history, sizeof(state.wpm_history));
     widget->state.key_pressed = state.key_pressed;
 
     // Calculate average WPM over last 5 seconds
     int recent_wpm = 0;
     for (int i = 5; i < 10; i++) {
-        recent_wpm += widget->state.wpm[i];
+        recent_wpm += state.wpm_history[i];
     }
     recent_wpm /= 5;
 
@@ -367,7 +371,7 @@ static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_s
     enum anim_state new_state;
     if (recent_wpm == 0 && !state.key_pressed) {
         new_state = ANIM_STATE_REST;
-    } else if (recent_wpm < 20) {
+    } else if (recent_wpm <= 30) {
         new_state = ANIM_STATE_CASUAL;
     } else {
         new_state = ANIM_STATE_FAST;
@@ -389,9 +393,19 @@ static void wpm_status_update_cb(struct wpm_status_state state) {
 }
 
 struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
+    static uint8_t wpm_history[10] = {0};  // Keep track of history between calls
+    
     const struct zmk_wpm_state_changed *wpm_ev = as_zmk_wpm_state_changed(eh);
     const struct zmk_position_state_changed *pos_ev = as_zmk_position_state_changed(eh);
     
+    // Update history if this is a WPM event
+    if (wpm_ev != NULL) {
+        for (int i = 0; i < 9; i++) {
+            wpm_history[i] = wpm_history[i + 1];
+        }
+        wpm_history[9] = wpm_ev->state;
+    }
+
     bool key_pressed = false;
     if (pos_ev != NULL) {
         key_pressed = pos_ev->state > 0;  // true when key is pressed
@@ -399,6 +413,9 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
 
     return (struct wpm_status_state){
         .wpm = (wpm_ev != NULL) ? wpm_ev->state : zmk_wpm_get_state(),
+        .wpm_history = {wpm_history[0], wpm_history[1], wpm_history[2], wpm_history[3],
+                       wpm_history[4], wpm_history[5], wpm_history[6], wpm_history[7],
+                       wpm_history[8], wpm_history[9]},
         .animation_state = current_anim_state,
         .key_pressed = key_pressed
     };
