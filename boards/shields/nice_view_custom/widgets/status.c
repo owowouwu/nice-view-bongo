@@ -140,7 +140,7 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
     rotate_canvas(canvas, cbuf);
 }
 
-static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
+static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct wpm_status_state *state) {
     lv_obj_t *canvas = lv_obj_get_child(widget, 1);
 
     lv_draw_rect_dsc_t rect_black_dsc;
@@ -172,14 +172,14 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     }
 
     char label[2];
-    snprintf(label, sizeof(label), "%d", state->active_profile_index + 1);
+    snprintf(label, sizeof(label), "%d", 1);  // Hardcode to 1 since we don't need profile info here
     lv_canvas_draw_text(canvas, x - 8, y - 10, 16,
                         (selected ? &label_dsc_black : &label_dsc), label);
 
     // Calculate average WPM over last 5 seconds
     int recent_wpm = 0;
     for (int i = 5; i < 10; i++) {
-        recent_wpm += state->wpm[i];
+        recent_wpm += state->wpm_history[i];
     }
     recent_wpm /= 5;
 
@@ -343,18 +343,15 @@ ZMK_SUBSCRIPTION(widget_layer_status, zmk_layer_state_changed);
 static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_state state) {
     // Update WPM array
     for (int i = 0; i < 9; i++) {
-        state.wpm_history[i] = state.wpm_history[i + 1];
+        widget->state.wpm[i] = widget->state.wpm[i + 1];
     }
-    state.wpm_history[9] = state.wpm;
-
-    // Update widget state
-    memcpy(widget->state.wpm, state.wpm_history, sizeof(state.wpm_history));
+    widget->state.wpm[9] = state.wpm;
     widget->state.key_pressed = state.key_pressed;
 
     // Calculate average WPM over last 5 seconds
     int recent_wpm = 0;
     for (int i = 5; i < 10; i++) {
-        recent_wpm += state.wpm_history[i];
+        recent_wpm += widget->state.wpm[i];
     }
     recent_wpm /= 5;
 
