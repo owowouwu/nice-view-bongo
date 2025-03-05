@@ -87,7 +87,7 @@ static int32_t get_random_adjustment(void) {
     }
     
     random_seed = random_seed * 1103515245 + 12345;
-    return ((random_seed / 65536) % 1001) - 500;
+    return ((random_seed / 65536) % 501) - 250;
 }
 
 LV_IMG_DECLARE(bongocatrest0);
