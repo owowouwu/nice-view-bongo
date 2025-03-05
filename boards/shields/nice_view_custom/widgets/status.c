@@ -30,6 +30,8 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include "bongocatart.h"
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
+static void wpm_status_update_cb(struct wpm_status_state state);
+
 
 struct output_status_state {
     struct zmk_endpoint_instance selected_endpoint;
@@ -443,6 +445,13 @@ static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_s
     } else if (is_animation_update) {
         // This is an animation update, just redraw the middle section
         draw_middle(widget->obj, widget->cbuf2, &widget->state);
+    }
+}
+
+static void wpm_status_update_cb(struct wpm_status_state state) {
+    struct zmk_widget_status *widget;
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) { 
+        set_wpm_status(widget, state); 
     }
 }
 
