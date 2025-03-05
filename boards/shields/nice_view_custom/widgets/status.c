@@ -293,12 +293,10 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
 
                 // Schedule next update by queuing a dummy WPM event
                 if (animation_updated) {
-                    struct zmk_wpm_state_changed *wpm_ev = NULL;
-                    ZMK_EVENT_ALLOC(wpm_ev, struct zmk_wpm_state_changed);
-                    if (wpm_ev) {
-                        wpm_ev->state = zmk_wpm_get_state();
-                        ZMK_EVENT_RAISE(wpm_ev);
-                    }
+                    struct zmk_wpm_state_changed wpm_ev = {
+                        .state = zmk_wpm_get_state()
+                    };
+                    ZMK_EVENT_RAISE(wpm_ev);
                 }
             } else {
                 // Keep showing current frame until interval passes
