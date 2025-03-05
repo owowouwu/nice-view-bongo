@@ -6,6 +6,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/device.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
@@ -67,6 +68,20 @@ static const uint32_t IDLE_ANIMATION_INTERVAL = 750;  // 750ms between idle anim
 
 static int32_t breathing_interval_adjustment = 0;
 static bool leaving_furious = false;
+
+static uint32_t random_seed = 7919; // Will be initialized with time on first use
+
+static int32_t get_random_adjustment(void) {
+    // Initialize seed with time on first call
+    static bool seed_initialized = false;
+    if (!seed_initialized) {
+        random_seed = random_seed ^ k_uptime_get_32();
+        seed_initialized = true;
+    }
+    
+    random_seed = random_seed * 1103515245 + 12345;
+    return ((random_seed / 65536) % 1001) - 500;
+}
 
 LV_IMG_DECLARE(bongocatrest0);
 LV_IMG_DECLARE(bongocatcasual1);
@@ -247,7 +262,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
         // Add random adjustment for breathing animation
         if (current_idle_state == IDLE_INHALE && !leaving_furious) {
             // Generate new random adjustment when starting new breath cycle
-            breathing_interval_adjustment = (sys_rand32_get() % 1001) - 500; // -500 to +500
+            breathing_interval_adjustment = get_random_adjustment();
             interval += breathing_interval_adjustment;
         }
 
