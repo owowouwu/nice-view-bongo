@@ -29,9 +29,17 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/events/position_state_changed.h>
 #include "bongocatart.h"
 
-static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
-static void wpm_status_update_cb(struct wpm_status_state state);
+// Define wpm_status_state before its first use
+struct wpm_status_state {
+    uint8_t wpm;                    // Current WPM
+    uint8_t wpm_history[10];        // Historical WPM values
+    uint8_t animation_state;        // Current animation state
+    bool key_pressed;              // Keypress state
+    bool is_key_event;            // Flag for key events
+    bool is_animation_update;      // Flag for animation updates
+};
 
+static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
 struct output_status_state {
     struct zmk_endpoint_instance selected_endpoint;
@@ -43,15 +51,6 @@ struct output_status_state {
 struct layer_status_state {
     uint8_t index;
     const char *label;
-};
-
-struct wpm_status_state {
-    uint8_t wpm;                    // Current WPM
-    uint8_t wpm_history[10];        // Historical WPM values
-    uint8_t animation_state;        // Current animation state
-    bool key_pressed;              // Keypress state
-    bool is_key_event;            // Flag for key events
-    bool is_animation_update;      // Flag for animation updates
 };
 
 enum anim_state {
