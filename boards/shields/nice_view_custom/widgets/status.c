@@ -49,6 +49,7 @@ struct wpm_status_state {
     uint8_t animation_state;        // Current animation state
     bool key_pressed;              // Keypress state
     bool is_key_event;            // Flag for key events
+    bool is_animation_update;      // Flag for animation updates
 };
 
 enum anim_state {
@@ -70,6 +71,9 @@ static int32_t breathing_interval_adjustment = 0;
 static bool leaving_furious = false;
 
 static uint32_t random_seed = 7919; // Will be initialized with time on first use
+
+static uint32_t last_wpm_update = 0;
+static const uint32_t WPM_UPDATE_INTERVAL = 1000;  // Update WPM every 1000ms (1 second)
 
 static int32_t get_random_adjustment(void) {
     // Initialize seed with time on first call
@@ -236,74 +240,86 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     // Determine which animation frame to use
     const lv_img_dsc_t *current_frame;
     
-    if (key_pressed || key_released) {
-        leaving_furious = false;  // Cancel any leaving_furious state
-        
-        if (current_anim_state == ANIM_STATE_CASUAL) {
-            // Always show typing animation on key events
+    if (current_anim_state == ANIM_STATE_CASUAL) {
+        if (key_pressed) {
+            // Show alternating left/right frames on press
             current_frame = use_first_frame ? &bongo_casualright : &bongo_casualleft;
-            use_first_frame = !use_first_frame;  // Toggle for next press
+        } else if (key_released) {
+            // Always show resting frame on release
+            current_frame = &bongo_resting;
+            // Toggle frame choice for next press
+            use_first_frame = !use_first_frame;
             
             // Reset breathing cycle to start with inhale after typing
             current_idle_state = IDLE_INHALE;
             last_idle_update = k_uptime_get_32();
-            
-        } else { // ANIM_STATE_FRENZIED
-            // Alternate between furiousup and furiousdown on keypresses
-            current_frame = use_first_frame ? &bongo_furiousup : &bongo_furiousdown;
-            use_first_frame = !use_first_frame;  // Toggle for next frame
-        }
-        
-    } else {
-        // Handle idle animation
-        uint32_t current_time = k_uptime_get_32();
-        uint32_t interval = IDLE_ANIMATION_INTERVAL;
-
-        // Add random adjustment for breathing animation
-        if (current_idle_state == IDLE_INHALE && !leaving_furious) {
-            // Generate new random adjustment when starting new breath cycle
-            breathing_interval_adjustment = get_random_adjustment();
-            interval += breathing_interval_adjustment;
-        }
-
-        if (current_time - last_idle_update > interval) {
-            last_idle_update = current_time;
-            
-            // Progress through idle animation states
-            switch (current_idle_state) {
-                case IDLE_INHALE:
-                    current_frame = &bongo_inhale;
-                    current_idle_state = IDLE_REST1;
-                    break;
-                case IDLE_REST1:
-                    current_frame = &bongo_resting;
-                    current_idle_state = IDLE_EXHALE;
-                    break;
-                case IDLE_EXHALE:
-                    current_frame = &bongo_exhale;
-                    current_idle_state = IDLE_REST2;
-                    if (leaving_furious) {
-                        leaving_furious = false;  // Done with transition
-                    }
-                    break;
-                case IDLE_REST2:
-                    current_frame = &bongo_resting;
-                    current_idle_state = IDLE_INHALE;
-                    break;
-            }
         } else {
-            // Keep showing current frame until interval passes
-            switch (current_idle_state) {
-                case IDLE_INHALE:
-                    current_frame = &bongo_inhale;
-                    break;
-                case IDLE_EXHALE:
-                    current_frame = &bongo_exhale;
-                    break;
-                default:
-                    current_frame = &bongo_resting;
-                    break;
+            // Handle idle animation
+            uint32_t current_time = k_uptime_get_32();
+            uint32_t interval = IDLE_ANIMATION_INTERVAL;
+            bool animation_updated = false;  // Track if we need to force a redraw
+
+            // Add random adjustment for breathing animation
+            if (current_idle_state == IDLE_INHALE && !leaving_furious) {
+                breathing_interval_adjustment = get_random_adjustment();
+                interval += breathing_interval_adjustment;
             }
+
+            if (current_time - last_idle_update > interval) {
+                last_idle_update = current_time;
+                animation_updated = true;  // Mark that we're changing animation state
+                
+                switch (current_idle_state) {
+                    case IDLE_INHALE:
+                        current_frame = &bongo_inhale;
+                        current_idle_state = IDLE_REST1;
+                        break;
+                    case IDLE_REST1:
+                        current_frame = &bongo_resting;
+                        current_idle_state = IDLE_EXHALE;
+                        break;
+                    case IDLE_EXHALE:
+                        current_frame = &bongo_exhale;
+                        current_idle_state = IDLE_REST2;
+                        if (leaving_furious) {
+                            leaving_furious = false;
+                        }
+                        break;
+                    case IDLE_REST2:
+                        current_frame = &bongo_resting;
+                        current_idle_state = IDLE_INHALE;
+                        break;
+                }
+
+                // Schedule next update by queuing a dummy WPM event
+                if (animation_updated) {
+                    struct zmk_wpm_state_changed wpm_ev = {
+                        .state = zmk_wpm_get_state()
+                    };
+                    ZMK_EVENT_RAISE(new_zmk_wpm_state_changed(&wpm_ev));
+                }
+            } else {
+                // Keep showing current frame until interval passes
+                switch (current_idle_state) {
+                    case IDLE_INHALE:
+                        current_frame = &bongo_inhale;
+                        break;
+                    case IDLE_EXHALE:
+                        current_frame = &bongo_exhale;
+                        break;
+                    default:
+                        current_frame = &bongo_resting;
+                        break;
+                }
+            }
+        }
+    } else { // ANIM_STATE_FRENZIED
+        // Keep existing furious animation logic
+        if (key_pressed || key_released) {
+            current_frame = use_first_frame ? &bongo_furiousup : &bongo_furiousdown;
+            use_first_frame = !use_first_frame;
+        } else {
+            current_frame = &bongo_resting;
         }
     }
 
@@ -442,11 +458,21 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_layer_status, struct layer_status_state, laye
 ZMK_SUBSCRIPTION(widget_layer_status, zmk_layer_state_changed);
 
 static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_state state) {
-    // Update WPM array
-    for (int i = 0; i < 9; i++) {
-        widget->state.wpm[i] = widget->state.wpm[i + 1];
+    uint32_t current_time = k_uptime_get_32();
+    bool is_animation_update = state.is_animation_update;
+
+    // Only update WPM array on the second, unless this is an animation update
+    if (!is_animation_update && (current_time - last_wpm_update >= WPM_UPDATE_INTERVAL)) {
+        // Update WPM array
+        for (int i = 0; i < 9; i++) {
+            widget->state.wpm[i] = widget->state.wpm[i + 1];
+        }
+        widget->state.wpm[9] = state.wpm;
+        last_wpm_update = current_time;
+        
+        // Update top display with new WPM data
+        draw_top(widget->obj, widget->cbuf, &widget->state);
     }
-    widget->state.wpm[9] = state.wpm;
 
     // Only update key states if this was triggered by a key event
     if (state.is_key_event) {
@@ -455,30 +481,10 @@ static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_s
         
         // Force redraw on every key event
         draw_middle(widget->obj, widget->cbuf2, &widget->state);
-    } else {
-        // For WPM updates, only redraw if we need to change animation state
-        int recent_wpm = 0;
-        for (int i = 5; i < 10; i++) {
-            recent_wpm += widget->state.wpm[i];
-        }
-        recent_wpm /= 5;
-
-        enum anim_state new_state = (recent_wpm > 30) ? 
-            ANIM_STATE_FRENZIED : ANIM_STATE_CASUAL;
-
-        if (new_state != current_anim_state) {
-            current_anim_state = new_state;
-            draw_middle(widget->obj, widget->cbuf2, &widget->state);
-        } else {
-            // Regular WPM update
-            draw_top(widget->obj, widget->cbuf, &widget->state);
-        }
+    } else if (is_animation_update) {
+        // This is an animation update, just redraw the middle section
+        draw_middle(widget->obj, widget->cbuf2, &widget->state);
     }
-}
-
-static void wpm_status_update_cb(struct wpm_status_state state) {
-    struct zmk_widget_status *widget;
-    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) { set_wpm_status(widget, state); }
 }
 
 struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
@@ -488,17 +494,28 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
     const struct zmk_wpm_state_changed *wpm_ev = as_zmk_wpm_state_changed(eh);
     const struct zmk_position_state_changed *pos_ev = as_zmk_position_state_changed(eh);
     
+    bool is_animation_update = false;
+    bool is_key_event = false;
+
     // Update WPM if this is a WPM event
     if (wpm_ev != NULL) {
         current_wpm = wpm_ev->state;
-        for (int i = 0; i < 9; i++) {
-            wpm_history[i] = wpm_history[i + 1];
+        
+        // Check if this is an animation update
+        if (k_uptime_get_32() - last_wpm_update < WPM_UPDATE_INTERVAL) {
+            is_animation_update = true;
         }
-        wpm_history[9] = current_wpm;
+        
+        // Only update history if this isn't an animation update
+        if (!is_animation_update) {
+            for (int i = 0; i < 9; i++) {
+                wpm_history[i] = wpm_history[i + 1];
+            }
+            wpm_history[9] = current_wpm;
+        }
     }
 
     // Update key state if this is a position event
-    bool is_key_event = false;
     if (pos_ev != NULL) {
         is_key_event = true;
         if (pos_ev->state > 0) {
@@ -517,7 +534,8 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
                        wpm_history[8], wpm_history[9]},
         .animation_state = current_anim_state,
         .key_pressed = key_pressed,
-        .is_key_event = is_key_event  // Add this flag to the struct
+        .is_key_event = is_key_event,
+        .is_animation_update = is_animation_update  // Add this to the struct
     };
 }
 
