@@ -293,9 +293,8 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
 
                 // Schedule next update by queuing a dummy WPM event
                 if (animation_updated) {
-                    struct zmk_wpm_state_changed wpm_ev = {
-                        .state = zmk_wpm_get_state()
-                    };
+                    struct zmk_wpm_state_changed wpm_ev;
+                    zmk_wpm_state_changed_from_data(&wpm_ev, zmk_wpm_get_state());
                     ZMK_EVENT_RAISE(wpm_ev);
                 }
             } else {
