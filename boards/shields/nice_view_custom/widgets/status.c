@@ -514,6 +514,15 @@ ZMK_SUBSCRIPTION(widget_wpm_status, zmk_position_state_changed);
 static void animation_work_handler(struct k_work *work) {
     uint32_t current_time = k_uptime_get_32();
     
+    // Add check for timeout in furious mode
+    if (current_anim_state == ANIM_STATE_FRENZIED && 
+        (current_time - last_wpm_update > WPM_UPDATE_INTERVAL * 2)) {  // No typing for 2 seconds
+        current_anim_state = ANIM_STATE_CASUAL;
+        current_idle_state = IDLE_INHALE;
+        last_idle_update = current_time;
+        breathing_interval_adjustment = get_random_adjustment();
+    }
+    
     // Only update animation if enough time has passed
     if (current_time - last_idle_update > IDLE_ANIMATION_INTERVAL) {
         last_idle_update = current_time;
