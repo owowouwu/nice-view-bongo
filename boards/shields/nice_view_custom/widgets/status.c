@@ -55,11 +55,31 @@ enum anim_state {
     ANIM_STATE_FRENZIED
 } current_anim_state = ANIM_STATE_CASUAL;
 
+enum idle_anim_state {
+    IDLE_INHALE,
+    IDLE_REST1,
+    IDLE_EXHALE,
+    IDLE_REST2
+} current_idle_state = IDLE_INHALE;
+
+static uint32_t last_idle_update = 0;
+static const uint32_t IDLE_ANIMATION_INTERVAL = 750;  // 750ms between idle animation frames
+
+static int32_t breathing_interval_adjustment = 0;
+static bool leaving_furious = false;
+
 LV_IMG_DECLARE(bongocatrest0);
 LV_IMG_DECLARE(bongocatcasual1);
 LV_IMG_DECLARE(bongocatcasual2);
 LV_IMG_DECLARE(bongocatfast1);
 LV_IMG_DECLARE(bongocatfast2);
+LV_IMG_DECLARE(bongo_resting);
+LV_IMG_DECLARE(bongo_casualright);
+LV_IMG_DECLARE(bongo_casualleft);
+LV_IMG_DECLARE(bongo_furiousup);
+LV_IMG_DECLARE(bongo_furiousdown);
+LV_IMG_DECLARE(bongo_inhale);
+LV_IMG_DECLARE(bongo_exhale);
 
 static bool key_pressed = false;
 static bool key_released = false;
@@ -189,30 +209,86 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     // Update animation state based on WPM
     if (recent_wpm > 30) {
         current_anim_state = ANIM_STATE_FRENZIED;
-    } else {
+        leaving_furious = false;
+    } else if (current_anim_state == ANIM_STATE_FRENZIED) {
+        // We're leaving furious mode
         current_anim_state = ANIM_STATE_CASUAL;
+        leaving_furious = true;
+        current_idle_state = IDLE_EXHALE;
+        last_idle_update = k_uptime_get_32();
     }
 
     // Determine which animation frame to use
     const lv_img_dsc_t *current_frame;
     
-    if (current_anim_state == ANIM_STATE_CASUAL) {
-        if (key_pressed) {
-            // Alternate between casual1 and casual2 on keypresses
-            current_frame = use_first_frame ? &bongocatcasual1 : &bongocatcasual2;
+    if (key_pressed || key_released) {
+        leaving_furious = false;  // Cancel any leaving_furious state
+        
+        if (current_anim_state == ANIM_STATE_CASUAL) {
+            // Always show typing animation on key events
+            current_frame = use_first_frame ? &bongo_casualright : &bongo_casualleft;
             use_first_frame = !use_first_frame;  // Toggle for next press
-        } else {
-            // Show rest frame when no key is pressed or when key is released
-            current_frame = &bongocatrest0;
-        }
-    } else { // ANIM_STATE_FRENZIED
-        if (key_pressed || key_released) {
-            // Alternate between fast1 and fast2 on every key event
-            current_frame = use_first_frame ? &bongocatfast1 : &bongocatfast2;
+            
+            // Reset breathing cycle to start with inhale after typing
+            current_idle_state = IDLE_INHALE;
+            last_idle_update = k_uptime_get_32();
+            
+        } else { // ANIM_STATE_FRENZIED
+            // Alternate between furiousup and furiousdown on keypresses
+            current_frame = use_first_frame ? &bongo_furiousup : &bongo_furiousdown;
             use_first_frame = !use_first_frame;  // Toggle for next frame
+        }
+        
+    } else {
+        // Handle idle animation
+        uint32_t current_time = k_uptime_get_32();
+        uint32_t interval = IDLE_ANIMATION_INTERVAL;
+
+        // Add random adjustment for breathing animation
+        if (current_idle_state == IDLE_INHALE && !leaving_furious) {
+            // Generate new random adjustment when starting new breath cycle
+            breathing_interval_adjustment = (sys_rand32_get() % 1001) - 500; // -500 to +500
+            interval += breathing_interval_adjustment;
+        }
+
+        if (current_time - last_idle_update > interval) {
+            last_idle_update = current_time;
+            
+            // Progress through idle animation states
+            switch (current_idle_state) {
+                case IDLE_INHALE:
+                    current_frame = &bongo_inhale;
+                    current_idle_state = IDLE_REST1;
+                    break;
+                case IDLE_REST1:
+                    current_frame = &bongo_resting;
+                    current_idle_state = IDLE_EXHALE;
+                    break;
+                case IDLE_EXHALE:
+                    current_frame = &bongo_exhale;
+                    current_idle_state = IDLE_REST2;
+                    if (leaving_furious) {
+                        leaving_furious = false;  // Done with transition
+                    }
+                    break;
+                case IDLE_REST2:
+                    current_frame = &bongo_resting;
+                    current_idle_state = IDLE_INHALE;
+                    break;
+            }
         } else {
-            // Keep showing the last frame when no key events
-            current_frame = use_first_frame ? &bongocatfast1 : &bongocatfast2;
+            // Keep showing current frame until interval passes
+            switch (current_idle_state) {
+                case IDLE_INHALE:
+                    current_frame = &bongo_inhale;
+                    break;
+                case IDLE_EXHALE:
+                    current_frame = &bongo_exhale;
+                    break;
+                default:
+                    current_frame = &bongo_resting;
+                    break;
+            }
         }
     }
 
