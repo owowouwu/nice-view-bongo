@@ -75,6 +75,8 @@ static uint32_t random_seed = 7919; // Will be initialized with time on first us
 static uint32_t last_wpm_update = 0;
 static const uint32_t WPM_UPDATE_INTERVAL = 1000;  // Update WPM every 1000ms (1 second)
 
+static struct k_work_delayable animation_work;
+
 static int32_t get_random_adjustment(void) {
     // Initialize seed with time on first call
     static bool seed_initialized = false;
@@ -254,63 +256,20 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
             current_idle_state = IDLE_INHALE;
             last_idle_update = k_uptime_get_32();
         } else {
-            // Handle idle animation
-            uint32_t current_time = k_uptime_get_32();
-            uint32_t interval = IDLE_ANIMATION_INTERVAL;
-            bool animation_updated = false;  // Track if we need to force a redraw
-
-            // Add random adjustment for breathing animation
-            if (current_idle_state == IDLE_INHALE && !leaving_furious) {
-                breathing_interval_adjustment = get_random_adjustment();
-                interval += breathing_interval_adjustment;
-            }
-
-            if (current_time - last_idle_update > interval) {
-                last_idle_update = current_time;
-                animation_updated = true;  // Mark that we're changing animation state
-                
-                switch (current_idle_state) {
-                    case IDLE_INHALE:
-                        current_frame = &bongo_inhale;
-                        current_idle_state = IDLE_REST1;
-                        break;
-                    case IDLE_REST1:
-                        current_frame = &bongo_resting;
-                        current_idle_state = IDLE_EXHALE;
-                        break;
-                    case IDLE_EXHALE:
-                        current_frame = &bongo_exhale;
-                        current_idle_state = IDLE_REST2;
-                        if (leaving_furious) {
-                            leaving_furious = false;
-                        }
-                        break;
-                    case IDLE_REST2:
-                        current_frame = &bongo_resting;
-                        current_idle_state = IDLE_INHALE;
-                        break;
-                }
-
-                // Schedule next update by queuing a dummy WPM event
-                if (animation_updated) {
-                    struct zmk_wpm_state_changed wpm_ev = {
-                        .state = zmk_wpm_get_state()
-                    };
-                    ZMK_EVENT_RAISE(wpm_ev);
-                }
-            } else {
-                // Keep showing current frame until interval passes
-                switch (current_idle_state) {
-                    case IDLE_INHALE:
-                        current_frame = &bongo_inhale;
-                        break;
-                    case IDLE_EXHALE:
-                        current_frame = &bongo_exhale;
-                        break;
-                    default:
-                        current_frame = &bongo_resting;
-                        break;
-                }
+            // Handle idle animation based on current state
+            switch (current_idle_state) {
+                case IDLE_INHALE:
+                    current_frame = &bongo_inhale;
+                    break;
+                case IDLE_REST1:
+                    current_frame = &bongo_resting;
+                    break;
+                case IDLE_EXHALE:
+                    current_frame = &bongo_exhale;
+                    break;
+                case IDLE_REST2:
+                    current_frame = &bongo_resting;
+                    break;
             }
         }
     } else { // ANIM_STATE_FRENZIED
@@ -544,6 +503,51 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_wpm_status, struct wpm_status_state,
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_wpm_state_changed);
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_position_state_changed);
 
+static void animation_work_handler(struct k_work *work) {
+    uint32_t current_time = k_uptime_get_32();
+    
+    // Only update animation if enough time has passed
+    if (current_time - last_idle_update > IDLE_ANIMATION_INTERVAL) {
+        last_idle_update = current_time;
+        
+        // Progress animation state
+        switch (current_idle_state) {
+            case IDLE_INHALE:
+                current_idle_state = IDLE_REST1;
+                break;
+            case IDLE_REST1:
+                current_idle_state = IDLE_EXHALE;
+                break;
+            case IDLE_EXHALE:
+                current_idle_state = IDLE_REST2;
+                if (leaving_furious) {
+                    leaving_furious = false;
+                }
+                break;
+            case IDLE_REST2:
+                current_idle_state = IDLE_INHALE;
+                // Get random adjustment for next breathing cycle
+                if (!leaving_furious) {
+                    breathing_interval_adjustment = get_random_adjustment();
+                }
+                break;
+        }
+        
+        // Trigger redraw
+        struct zmk_widget_status *widget;
+        SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+            draw_middle(widget->obj, widget->cbuf2, &widget->state);
+        }
+    }
+    
+    // Schedule next check
+    uint32_t next_interval = IDLE_ANIMATION_INTERVAL;
+    if (current_idle_state == IDLE_INHALE) {
+        next_interval += breathing_interval_adjustment;
+    }
+    k_work_schedule(&animation_work, K_MSEC(next_interval / 2));
+}
+
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
     lv_obj_set_size(widget->obj, 160, 68);
@@ -562,6 +566,10 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget_output_status_init();
     widget_layer_status_init();
     widget_wpm_status_init();
+
+    // Initialize and start the animation timer
+    k_work_init_delayable(&animation_work, animation_work_handler);
+    k_work_schedule(&animation_work, K_MSEC(IDLE_ANIMATION_INTERVAL));
 
     return 0;
 }
