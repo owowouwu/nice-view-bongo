@@ -207,19 +207,15 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
 
     // Draw single BLE profile circle at the top
-    bool selected = true;
     int x = 34, y = 13;
 
     lv_canvas_draw_arc(canvas, x, y, 13, 0, 360, &arc_dsc);
-
-    if (selected) {
-        lv_canvas_draw_arc(canvas, x, y, 9, 0, 359, &arc_dsc_filled);
-    }
+    lv_canvas_draw_arc(canvas, x, y, 9, 0, 359, &arc_dsc_filled);
 
     char label[2];
-    snprintf(label, sizeof(label), "%d", 1);  // Hardcode to 1 since we don't need profile info here
-    lv_canvas_draw_text(canvas, x - 8, y - 10, 16,
-                        (selected ? &label_dsc_black : &label_dsc), label);
+    // Use actual profile index + 1 since ZMK profile indices are 0-based but displayed as 1-5
+    snprintf(label, sizeof(label), "%d", state->active_profile_index + 1);
+    lv_canvas_draw_text(canvas, x - 8, y - 10, 16, &label_dsc_black, label);
 
     // Calculate average WPM over last 5 seconds
     int recent_wpm = 0;
