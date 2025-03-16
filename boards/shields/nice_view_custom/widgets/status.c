@@ -150,7 +150,7 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
     lv_canvas_draw_text(canvas, 0, 0, CANVAS_SIZE, &label_dsc, output_text);
 
     // Draw WPM
-   #if IS_ENABLED(CONFIG_WPM_GRAPH_ENABLED)
+   #if IS_ENABLED(CONFIG_ZMK_WPM_GRAPH_ENABLED)
     lv_canvas_draw_rect(canvas, 0, 21, 68, 42, &rect_white_dsc);
     lv_canvas_draw_rect(canvas, 1, 22, 66, 40, &rect_black_dsc);
 
