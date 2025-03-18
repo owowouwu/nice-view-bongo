@@ -215,9 +215,9 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_canvas_draw_arc(canvas, x, y, 9, 0, 359, &arc_dsc_filled);
 
     char label[2];
-    // Use actual profile index + 1 since ZMK profile indices are 0-based but displayed as 1-5
+    // Move profile index to left side and make it smaller
     snprintf(label, sizeof(label), "%d", state->active_profile_index + 1);
-    lv_canvas_draw_text(canvas, x - 8, y - 10, 16, &label_dsc_black, label);
+    lv_canvas_draw_text(canvas, 4, y - 10, 12, &label_dsc_black, label);
 
     // Calculate average WPM over last 5 seconds
     int recent_wpm = 0;
