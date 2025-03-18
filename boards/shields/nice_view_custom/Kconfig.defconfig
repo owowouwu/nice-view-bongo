@@ -59,6 +59,9 @@ config ZMK_DISPLAY_STATUS_SCREEN_BUILT_IN
 config ZMK_WIDGET_MODIFIERS
     bool "Show modifier status widget"
     depends on ZMK_DISPLAY
+    select LV_USE_LINE 
+    select ZMK_KEYCODE_STATE_CHANGED
+    select ZMK_BEHAVIORS_MODS
 
 config ZMK_DISPLAY
     default y
@@ -78,7 +81,5 @@ config ZMK_WIDGET_MODIFIERS_DEBUG
     bool "Enable debug logging for modifiers widget"
     default n
     depends on ZMK_WIDGET_MODIFIERS     
-
-select LV_USE_LINE 
 
 endif # SHIELD_NICE_VIEW_CUSTOM
