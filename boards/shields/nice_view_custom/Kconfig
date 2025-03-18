@@ -1,0 +1,4 @@
+config ZMK_WIDGET_MODIFIERS_DEBUG
+    bool "Enable debug logging for modifiers widget"
+    default n
+    depends on ZMK_WIDGET_MODIFIERS 
