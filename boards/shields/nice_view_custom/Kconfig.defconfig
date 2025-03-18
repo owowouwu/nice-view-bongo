@@ -69,4 +69,7 @@ config NICE_VIEW_WIDGET_STATUS
 config ZMK_WIDGET_MODIFIERS
     default y
 
-endif # SHIELD_NICE_VIEW
+config ZMK_DONGLE_DISPLAY_MAC_MODIFIERS
+    default y
+
+endif # SHIELD_NICE_VIEW_CUSTOM
