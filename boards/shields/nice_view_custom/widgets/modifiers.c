@@ -15,9 +15,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/events/keycode_state_changed.h>
 #include <dt-bindings/zmk/modifiers.h>
 
-#include "modifiers.h"
-
-#include <zmk/modifiers.h>
+#include <zmk/keys.h>
 
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
     #define MOD_DBG(fmt, ...) LOG_DBG(fmt, ##__VA_ARGS__)
