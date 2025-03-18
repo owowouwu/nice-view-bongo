@@ -70,6 +70,13 @@ config ZMK_WIDGET_MODIFIERS
     default y
 
 config ZMK_DONGLE_DISPLAY_MAC_MODIFIERS
+    bool "Show modifier status widget on dongle display"
+    depends on ZMK_DISPLAY
     default y
+
+config ZMK_WIDGET_MODIFIERS_DEBUG
+    bool "Enable debug logging for modifiers widget"
+    default n
+    depends on ZMK_WIDGET_MODIFIERS     
 
 endif # SHIELD_NICE_VIEW_CUSTOM
