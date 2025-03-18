@@ -13,10 +13,11 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/display.h>
 #include <zmk/event_manager.h>
 #include <zmk/events/keycode_state_changed.h>
-#include <zmk/hid.h>
 #include <dt-bindings/zmk/modifiers.h>
 
 #include "modifiers.h"
+
+#include <zmk/modules/modifiers/modifiers.h>
 
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
     #define MOD_DBG(fmt, ...) LOG_DBG(fmt, ##__VA_ARGS__)
@@ -140,7 +141,7 @@ void modifiers_update_cb(struct modifiers_state state) {
 }
 
 static struct modifiers_state modifiers_get_state(const zmk_event_t *eh) {
-    uint8_t mods = zmk_hid_get_explicit_mods();
+    uint8_t mods = zmk_mod_get_current_mods();
     MOD_DBG("Getting modifier state: 0x%02x", mods);
     return (struct modifiers_state) {
         .modifiers = mods

@@ -79,4 +79,6 @@ config ZMK_WIDGET_MODIFIERS_DEBUG
     default n
     depends on ZMK_WIDGET_MODIFIERS     
 
+select LV_USE_LINE 
+
 endif # SHIELD_NICE_VIEW_CUSTOM
