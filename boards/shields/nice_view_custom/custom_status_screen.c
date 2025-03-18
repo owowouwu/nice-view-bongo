@@ -23,13 +23,14 @@ lv_obj_t *zmk_display_status_screen() {
 
 #if IS_ENABLED(CONFIG_NICE_VIEW_WIDGET_STATUS)
     zmk_widget_status_init(&status_widget, screen);
+    // Move status widget (with bluetooth profile) to left side
     lv_obj_align(zmk_widget_status_obj(&status_widget), LV_ALIGN_TOP_LEFT, 0, 0);
 #endif
 
     // Initialize the modifiers widget
     zmk_widget_modifiers_init(&modifiers_widget, screen);
-    // Position it to the right of the profile number
-    lv_obj_align(zmk_widget_modifiers_obj(&modifiers_widget), LV_ALIGN_TOP_LEFT, 20, 0);
+    // Position it near the right edge with a small offset
+    lv_obj_align(zmk_widget_modifiers_obj(&modifiers_widget), LV_ALIGN_TOP_RIGHT, -4, 0);
 
     return screen;
 }
