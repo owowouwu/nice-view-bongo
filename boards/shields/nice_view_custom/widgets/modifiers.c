@@ -17,6 +17,8 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include <zmk/keys.h>
 
+#include <lvgl.h>
+
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
     #define MOD_DBG(fmt, ...) LOG_DBG(fmt, ##__VA_ARGS__)
 #else
