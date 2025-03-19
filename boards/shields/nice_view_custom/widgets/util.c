@@ -128,8 +128,8 @@ void init_arc_dsc(lv_draw_arc_dsc_t *arc_dsc, lv_color_t color, uint8_t width) {
 void draw_modifiers(lv_obj_t *canvas, int x, int y) {
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
-    img_dsc.recolor = LVGL_FOREGROUND;
-    img_dsc.recolor_opa = LV_OPA_COVER;
+    img_dsc.recolor = LV_OPA_COVER;
+    img_dsc.recolor_opa = LVGL_FOREGROUND;
     
     // Draw each modifier symbol in a row
     for (int i = 0; i < NUM_SYMBOLS; i++) {
