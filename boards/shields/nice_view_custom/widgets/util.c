@@ -65,8 +65,6 @@ struct modifier_symbol *modifier_symbols[] = {
 };
 #endif
 
-#define NUM_SYMBOLS (sizeof(modifier_symbols) / sizeof(struct modifier_symbol *))
-
 void rotate_canvas(lv_obj_t *canvas, lv_color_t cbuf[]) {
     static lv_color_t cbuf_tmp[CANVAS_SIZE * CANVAS_SIZE];
     memcpy(cbuf_tmp, cbuf, sizeof(cbuf_tmp));
