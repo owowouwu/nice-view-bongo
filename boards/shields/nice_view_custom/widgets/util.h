@@ -46,7 +46,7 @@ struct modifier_symbol {
 };
 
 extern struct modifier_symbol *modifier_symbols[];
-#define NUM_SYMBOLS (sizeof(modifier_symbols) / sizeof(struct modifier_symbol *))
+extern const size_t NUM_SYMBOLS;
 
 void rotate_canvas(lv_obj_t *canvas, lv_color_t cbuf[]);
 void draw_battery(lv_obj_t *canvas, const struct status_state *state);
