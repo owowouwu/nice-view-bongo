@@ -569,9 +569,9 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
     // Space out the canvases more evenly
-    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);       // Battery/BLE at top
-    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 24);   // BLE circle & bongo cat in middle
-    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 0, 48);   // Layer name at bottom
+    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 48);      // Battery/BLE - will be at top after rotation
+    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 24);   // BLE circle & bongo cat - will be in middle after rotation
+    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 0, 0);    // Layer name - will be at bottom after rotation
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
