@@ -215,7 +215,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_canvas_draw_arc(canvas, x, y, 9, 0, 359, &arc_dsc_filled);
 
     char label[2];
-    // Center the profile number in the circle
+    // Center the actuve bluetooth profile number in the circle
     snprintf(label, sizeof(label), "%d", state->active_profile_index + 1);
     lv_canvas_draw_text(canvas, x - 4, y - 6, 12, &label_dsc_black, label);
 
