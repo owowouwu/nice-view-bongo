@@ -624,10 +624,10 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_obj_set_size(middle, CANVAS_SIZE, CANVAS_SIZE);
     lv_obj_set_size(bottom, CANVAS_SIZE, CANVAS_SIZE);
 
-    // Position canvases vertically
-    lv_obj_align(top, LV_ALIGN_TOP_MID, 0, 0);
-    lv_obj_align(middle, LV_ALIGN_TOP_MID, 0, CANVAS_SIZE);
-    lv_obj_align(bottom, LV_ALIGN_TOP_MID, 0, CANVAS_SIZE * 2);
+    // Position each canvas with negative y offsets to account for rotation
+    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, -CANVAS_SIZE);
+    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 0, CANVAS_SIZE);
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
