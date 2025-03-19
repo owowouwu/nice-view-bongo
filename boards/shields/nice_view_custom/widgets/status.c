@@ -167,7 +167,8 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
 
     // Draw WPM with smaller rectangle
     #if IS_ENABLED(CONFIG_ZMK_WPM_GRAPH_ENABLED)
-    lv_canvas_draw_rect(canvas, 1, 22, 66, 38, &rect_black_dsc);  // Just use black background
+    lv_canvas_draw_rect(canvas, 0, 21, 68, 42, &rect_white_dsc);
+    lv_canvas_draw_rect(canvas, 1, 22, 66, 40, &rect_black_dsc);
 
     char wpm_text[6] = {};
     snprintf(wpm_text, sizeof(wpm_text), "%d", state->wpm[9]);
@@ -609,25 +610,19 @@ ZMK_SUBSCRIPTION(widget_modifier_status, zmk_modifiers_state_changed); // For mo
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
-    lv_obj_set_size(widget->obj, 68, 204);  // Keep our vertical size
+    lv_obj_set_size(widget->obj, 160, 68);
     
     lv_obj_t *top = lv_canvas_create(widget->obj);
-    lv_obj_t *middle = lv_canvas_create(widget->obj);
-    lv_obj_t *bottom = lv_canvas_create(widget->obj);
-
+    lv_obj_align(top, LV_ALIGN_TOP_RIGHT, 0, 0);
     lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
+    
+    lv_obj_t *middle = lv_canvas_create(widget->obj);
+    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 24, 0);
     lv_canvas_set_buffer(middle, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
+    
+    lv_obj_t *bottom = lv_canvas_create(widget->obj);
+    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, -44, 0);
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
-
-    // Set size for each canvas
-    lv_obj_set_size(top, CANVAS_SIZE, CANVAS_SIZE);
-    lv_obj_set_size(middle, CANVAS_SIZE, CANVAS_SIZE);
-    lv_obj_set_size(bottom, CANVAS_SIZE, CANVAS_SIZE);
-
-    // Position each canvas with negative y offsets to account for rotation
-    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, -CANVAS_SIZE);
-    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 0, CANVAS_SIZE);
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
