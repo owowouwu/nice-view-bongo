@@ -2,17 +2,16 @@ if(CONFIG_ZMK_DISPLAY)
     zephyr_library_include_directories(${CMAKE_SOURCE_DIR}/include)
     
     if(CONFIG_NICE_VIEW_WIDGET_STATUS)
-        zephyr_library_sources(
-            custom_status_screen.c
-            widgets/bolt.c
+        target_sources(app PRIVATE
+            widgets/status.c
             widgets/util.c
+            widgets/bolt.c
+            custom_status_screen.c
         )
 
         if(NOT CONFIG_ZMK_SPLIT OR CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
             zephyr_library_sources(
-                widgets/status.c
                 widgets/bongocatart.c
-                widgets/modifiers.c
                 widgets/modifiers_sym.c
             )
         else()
