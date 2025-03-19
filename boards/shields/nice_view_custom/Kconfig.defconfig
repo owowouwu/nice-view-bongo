@@ -51,30 +51,28 @@ config NICE_VIEW_WIDGET_STATUS
     select LV_FONT_UNSCII_8
     select ZMK_WPM
 
-endif # !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
-
-config ZMK_DISPLAY_STATUS_SCREEN_BUILT_IN
-    select LV_FONT_MONTSERRAT_26
-
 config ZMK_WIDGET_MODIFIERS
     bool "Show modifier status widget"
     depends on ZMK_DISPLAY
     select LV_USE_LINE
     select ZMK_KEYCODE_STATE_CHANGED
-    select ZMK_ENDPOINTS if !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
+    select ZMK_ENDPOINTS
+    default y
+
+config ZMK_DONGLE_DISPLAY_MAC_MODIFIERS
+    bool "Show Mac-style modifier icons"
+    depends on ZMK_WIDGET_MODIFIERS
+    default y
+
+endif # !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
+
+config ZMK_DISPLAY_STATUS_SCREEN_BUILT_IN
+    select LV_FONT_MONTSERRAT_26
 
 config ZMK_DISPLAY
     default y
 
 config NICE_VIEW_WIDGET_STATUS
-    default y
-
-config ZMK_WIDGET_MODIFIERS
-    default y
-
-config ZMK_DONGLE_DISPLAY_MAC_MODIFIERS
-    bool "Show modifier status widget on dongle display"
-    depends on ZMK_DISPLAY
     default y
 
 config ZMK_WIDGET_MODIFIERS_DEBUG
