@@ -230,10 +230,10 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_canvas_draw_arc(canvas, x, y, 13, 0, 360, &arc_dsc);
     lv_canvas_draw_arc(canvas, x, y, 9, 0, 359, &arc_dsc_filled);
 
-    // Draw profile number - adjust x-4, y-6 to x-6, y-8 for better centering
+    // Draw profile number - just move up 2 more pixels
     char label[2];
     snprintf(label, sizeof(label), "%d", state->active_profile_index + 1);
-    lv_canvas_draw_text(canvas, x - 6, y - 8, 12, &label_dsc_black, label);
+    lv_canvas_draw_text(canvas, x - 6, y - 10, 12, &label_dsc_black, label);  // Keep black text
 
     // Draw modifiers to the right of the BLE circle
     draw_modifiers(canvas, x + 12, y);  // Move modifiers closer to BLE circle

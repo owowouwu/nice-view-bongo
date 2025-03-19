@@ -128,11 +128,13 @@ void init_arc_dsc(lv_draw_arc_dsc_t *arc_dsc, lv_color_t color, uint8_t width) {
 void draw_modifiers(lv_obj_t *canvas, int x, int y) {
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
+    img_dsc.recolor = LVGL_FOREGROUND;
+    img_dsc.recolor_opa = LV_OPA_COVER;
     
     // Draw each modifier symbol in a row
     for (int i = 0; i < NUM_SYMBOLS; i++) {
         if (modifier_symbols[i]->is_active) {
-            lv_canvas_draw_img(canvas, x + (i * 16), y - 7, 
+            lv_canvas_draw_img(canvas, x + (i * 14), y - 7, 
                              modifier_symbols[i]->symbol_dsc, &img_dsc);
         }
     }
