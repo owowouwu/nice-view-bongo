@@ -134,14 +134,14 @@ static void set_modifiers(lv_obj_t *widget, struct modifiers_state state) {
         bool mod_is_active = state.modifiers & modifier_symbols[i]->modifier;
 
         if (mod_is_active && !modifier_symbols[i]->is_active) {
-            // Move symbol up and line down when active
-            move_object_y(modifier_symbols[i]->symbol, 0, -2);
-            move_object_y(modifier_symbols[i]->selection_line, SIZE_SYMBOLS + 1, SIZE_SYMBOLS + 3);
+            // Move symbol left and line right when active (will appear as up/down after rotation)
+            move_object_x(modifier_symbols[i]->symbol, 0, -2);
+            move_object_x(modifier_symbols[i]->selection_line, SIZE_SYMBOLS + 1, SIZE_SYMBOLS + 3);
             modifier_symbols[i]->is_active = true;
         } else if (!mod_is_active && modifier_symbols[i]->is_active) {
             // Move back to original position when inactive
-            move_object_y(modifier_symbols[i]->symbol, -2, 0);
-            move_object_y(modifier_symbols[i]->selection_line, SIZE_SYMBOLS + 3, SIZE_SYMBOLS + 1);
+            move_object_x(modifier_symbols[i]->symbol, -2, 0);
+            move_object_x(modifier_symbols[i]->selection_line, SIZE_SYMBOLS + 3, SIZE_SYMBOLS + 1);
             modifier_symbols[i]->is_active = false;
         }
     }
@@ -181,19 +181,17 @@ ZMK_SUBSCRIPTION(widget_modifiers, zmk_keycode_state_changed);
 int zmk_widget_modifiers_init(struct zmk_widget_modifiers *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
 
-    // Calculate exact size needed for horizontal layout
-    // Width = (number of symbols * symbol size) + (spacing between symbols * (num_symbols - 1)) + padding
-    // Height = symbol size + selection line height + padding
+    // Calculate exact size needed for vertical layout (will appear horizontal after rotation)
     const int symbol_spacing = 2;  // Space between symbols
     const int horizontal_padding = 2;  // Padding on left and right
     const int vertical_padding = 2;    // Padding for top and bottom
     const int selection_line_space = 3; // Space for selection line and gap
 
-    // For horizontal layout, width needs to accommodate all symbols side by side
-    int total_width = (NUM_SYMBOLS * SIZE_SYMBOLS) + 
-                     (symbol_spacing * (NUM_SYMBOLS - 1)) + 
-                     horizontal_padding;
-    int total_height = SIZE_SYMBOLS + selection_line_space + vertical_padding;
+    // For vertical layout (will be rotated to horizontal)
+    int total_width = SIZE_SYMBOLS + selection_line_space + horizontal_padding;
+    int total_height = (NUM_SYMBOLS * SIZE_SYMBOLS) + 
+                      (symbol_spacing * (NUM_SYMBOLS - 1)) + 
+                      vertical_padding;
 
     lv_obj_set_size(widget->obj, total_width, total_height);
     
@@ -207,24 +205,24 @@ int zmk_widget_modifiers_init(struct zmk_widget_modifiers *widget, lv_obj_t *par
     lv_style_set_border_width(&style_cont, 0);
     lv_obj_add_style(widget->obj, &style_cont, 0);
 
-    // Horizontal selection line points
-    static const lv_point_t selection_line_points[] = { {0, 0}, {SIZE_SYMBOLS - 1, 0} };
+    // Vertical selection line points (will appear horizontal after rotation)
+    static const lv_point_t selection_line_points[] = { {0, 0}, {0, SIZE_SYMBOLS - 1} };
 
     for (int i = 0; i < NUM_SYMBOLS; i++) {
         modifier_symbols[i]->symbol = lv_img_create(widget->obj);
         
-        // Position symbols in a horizontal row with proper spacing
-        int x_pos = (horizontal_padding/2) + (i * (SIZE_SYMBOLS + symbol_spacing));
-        lv_obj_align(modifier_symbols[i]->symbol, LV_ALIGN_TOP_LEFT, x_pos, vertical_padding/2);
+        // Position symbols in a vertical column (will appear as horizontal row after rotation)
+        int y_pos = (vertical_padding/2) + (i * (SIZE_SYMBOLS + symbol_spacing));
+        lv_obj_align(modifier_symbols[i]->symbol, LV_ALIGN_TOP_LEFT, horizontal_padding/2, y_pos);
         lv_img_set_src(modifier_symbols[i]->symbol, modifier_symbols[i]->symbol_dsc);
 
         modifier_symbols[i]->selection_line = lv_line_create(widget->obj);
         lv_line_set_points(modifier_symbols[i]->selection_line, selection_line_points, 2);
         lv_obj_add_style(modifier_symbols[i]->selection_line, &style_line, 0);
         
-        // Position selection line below each symbol
+        // Position selection line to the right of each symbol (will appear below after rotation)
         lv_obj_align_to(modifier_symbols[i]->selection_line, modifier_symbols[i]->symbol, 
-                       LV_ALIGN_OUT_BOTTOM_LEFT, 0, 1);
+                       LV_ALIGN_OUT_RIGHT_MID, 1, 0);
     }
 
     sys_slist_append(&widgets, &widget->node);
