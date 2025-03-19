@@ -300,19 +300,18 @@ static void draw_bottom(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_draw_rect_dsc_t rect_black_dsc;
     init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
     lv_draw_label_dsc_t label_dsc;
-    // Change text alignment to LEFT since we want it left-justified after rotation
-    init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_14, LV_TEXT_ALIGN_LEFT);
+    init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_14, LV_TEXT_ALIGN_CENTER);
 
     // Fill background
     lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
 
-    // Draw layer - position it on the right side (will be bottom after rotation)
+    // Draw layer
     if (state->layer_label == NULL) {
         char text[10] = {};
         sprintf(text, "LAYER %i", state->layer_index);
-        lv_canvas_draw_text(canvas, 55, 0, 68, &label_dsc, text);  // Move to right edge, will be bottom-left after rotation
+        lv_canvas_draw_text(canvas, 0, 12, 68, &label_dsc, text);
     } else {
-        lv_canvas_draw_text(canvas, 55, 0, 68, &label_dsc, state->layer_label);  // Move to right edge, will be bottom-left after rotation
+        lv_canvas_draw_text(canvas, 0, 12, 68, &label_dsc, state->layer_label);
     }
 
     // Rotate canvas
@@ -574,10 +573,10 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(middle, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
-    // Position the canvases
-    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);      // Starts at y=0
-    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 20);  // Start after top section
-    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 0, 55);  // Start after middle section
+    // Position the canvases - revert to original positions
+    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 24);
+    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 0, 48);
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
