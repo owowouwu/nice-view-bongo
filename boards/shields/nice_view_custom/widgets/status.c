@@ -215,9 +215,9 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_canvas_draw_arc(canvas, x, y, 9, 0, 359, &arc_dsc_filled);
 
     char label[2];
-    // Move profile index to left side and make it smaller
+    // Center the profile number in the circle
     snprintf(label, sizeof(label), "%d", state->active_profile_index + 1);
-    lv_canvas_draw_text(canvas, 4, y - 10, 12, &label_dsc_black, label);
+    lv_canvas_draw_text(canvas, x - 4, y - 6, 12, &label_dsc_black, label);
 
     // Calculate average WPM over last 5 seconds
     int recent_wpm = 0;
@@ -566,15 +566,26 @@ static void animation_work_handler(struct k_work *work) {
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
     lv_obj_set_size(widget->obj, 160, 68);
+
+    // Create the three canvases
     lv_obj_t *top = lv_canvas_create(widget->obj);
-    lv_obj_align(top, LV_ALIGN_TOP_RIGHT, 0, 0);
-    lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
     lv_obj_t *middle = lv_canvas_create(widget->obj);
-    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 24, 0);
-    lv_canvas_set_buffer(middle, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
     lv_obj_t *bottom = lv_canvas_create(widget->obj);
-    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, -44, 0);
+
+    // Set up the canvas buffers
+    lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
+    lv_canvas_set_buffer(middle, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
+
+    // Position the canvases:
+    // Top canvas (battery & radio) at the top
+    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);
+    
+    // Middle canvas (bluetooth profile) below the top
+    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 32);
+    
+    // Bottom canvas (layer info) at the bottom
+    lv_obj_align(bottom, LV_ALIGN_BOTTOM_LEFT, 0, 0);
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
