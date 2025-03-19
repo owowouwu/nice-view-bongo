@@ -40,7 +40,7 @@ static struct modifier_symbol ms_cmd = {
     .symbol_dsc = &cmd_icon,
 };
 
-static struct modifier_symbol *modifier_symbols[] = {
+struct modifier_symbol *modifier_symbols[] = {
     &ms_control,
     &ms_opt,
     &ms_cmd,
@@ -57,7 +57,7 @@ static struct modifier_symbol ms_win = {
     .symbol_dsc = &win_icon,
 };
 
-static struct modifier_symbol *modifier_symbols[] = {
+struct modifier_symbol *modifier_symbols[] = {
     &ms_win,
     &ms_alt,
     &ms_control,
