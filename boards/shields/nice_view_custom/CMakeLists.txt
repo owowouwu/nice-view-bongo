@@ -3,21 +3,21 @@ if(CONFIG_ZMK_DISPLAY)
     
     if(CONFIG_NICE_VIEW_WIDGET_STATUS)
         target_sources(app PRIVATE
-            widgets/status.c
             widgets/util.c
             widgets/bolt.c
             custom_status_screen.c
         )
 
         if(NOT CONFIG_ZMK_SPLIT OR CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
-            zephyr_library_sources(
+            target_sources(app PRIVATE
+                widgets/status.c
                 widgets/bongocatart.c
                 widgets/modifiers_sym.c
             )
         else()
-            zephyr_library_sources(
-                widgets/art.c
+            target_sources(app PRIVATE
                 widgets/peripheral_status.c
+                widgets/art.c
             )
         endif()
     endif()

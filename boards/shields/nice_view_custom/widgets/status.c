@@ -146,7 +146,6 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
     // Draw output status
     char output_text[10] = {};
 
-#if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
     switch (state->selected_endpoint.transport) {
     case ZMK_TRANSPORT_USB:
         strcat(output_text, LV_SYMBOL_USB);
@@ -163,14 +162,6 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
         }
         break;
     }
-#else
-    // For peripheral role
-    if (state->connected) {
-        strcat(output_text, LV_SYMBOL_WIFI);
-    } else {
-        strcat(output_text, LV_SYMBOL_CLOSE);
-    }
-#endif
 
     lv_canvas_draw_text(canvas, 0, 0, CANVAS_SIZE, &label_dsc, output_text);
 
