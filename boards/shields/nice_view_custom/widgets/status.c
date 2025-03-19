@@ -595,8 +595,12 @@ static void modifier_status_update_cb(uint8_t state) {
     }
 }
 
+static uint8_t modifier_status_get_state(const zmk_event_t *_eh) {
+    return zmk_hid_get_explicit_mods();
+}
+
 ZMK_DISPLAY_WIDGET_LISTENER(widget_modifier_status, uint8_t,
-                          modifier_status_update_cb, zmk_hid_get_explicit_mods)
+                          modifier_status_update_cb, modifier_status_get_state)
 ZMK_SUBSCRIPTION(widget_modifier_status, zmk_keycode_state_changed);
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
