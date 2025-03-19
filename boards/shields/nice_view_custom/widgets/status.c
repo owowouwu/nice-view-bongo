@@ -609,7 +609,7 @@ ZMK_SUBSCRIPTION(widget_modifier_status, zmk_modifiers_state_changed); // For mo
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
-    lv_obj_set_size(widget->obj, 68, 68);  // Keep full size for rotation
+    lv_obj_set_size(widget->obj, 68, 204);  // 68x3 to fit all three sections vertically
     
     lv_obj_t *top = lv_canvas_create(widget->obj);
     lv_obj_t *middle = lv_canvas_create(widget->obj);
@@ -620,9 +620,9 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
     // Space out the canvases evenly
-    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);       // Battery/BLE - will be on left after rotation
-    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 24);   // BLE circle & bongo cat - will be in middle after rotation
-    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 0, 48);   // Layer name - will be on right after rotation
+    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);          // Position at top
+    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 68);      // Position in middle
+    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 0, 136);     // Position at bottom
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
