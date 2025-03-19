@@ -147,7 +147,7 @@ void modifiers_update_cb(struct modifiers_state state) {
 static struct modifiers_state modifiers_get_state(const zmk_event_t *eh) {
 #if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
     // Central side uses endpoints
-    uint8_t mods = zmk_endpoints_get_explicit_mods();
+    uint8_t mods = zmk_hid_get_explicit_mods();
 #else
     // Peripheral side doesn't have endpoints access
     uint8_t mods = 0; // We'll need to get this from the keycode state changed event

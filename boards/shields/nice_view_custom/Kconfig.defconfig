@@ -56,7 +56,6 @@ config ZMK_WIDGET_MODIFIERS
     depends on ZMK_DISPLAY
     select LV_USE_LINE
     select ZMK_KEYCODE_STATE_CHANGED
-    select ZMK_ENDPOINTS
     select ZMK_HID
     default y
 
