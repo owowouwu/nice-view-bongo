@@ -307,9 +307,9 @@ static void draw_bottom(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     if (state->layer_label == NULL) {
         char text[10] = {};
         sprintf(text, "LAYER %i", state->layer_index);
-        lv_canvas_draw_text(canvas, 0, 12, 68, &label_dsc, text);
+        lv_canvas_draw_text(canvas, 0, 8, 68, &label_dsc, text);
     } else {
-        lv_canvas_draw_text(canvas, 0, 12, 68, &label_dsc, state->layer_label);
+        lv_canvas_draw_text(canvas, 0, 8, 68, &label_dsc, state->layer_label);
     }
 
     rotate_canvas(canvas, cbuf);
@@ -558,7 +558,7 @@ static void animation_work_handler(struct k_work *work) {
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
-    lv_obj_set_size(widget->obj, 68, 68);
+    lv_obj_set_size(widget->obj, 68, 68);  // Keep full size for rotation
     
     lv_obj_t *top = lv_canvas_create(widget->obj);
     lv_obj_t *middle = lv_canvas_create(widget->obj);
@@ -568,9 +568,10 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(middle, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
-    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 24);
-    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 0, 48);
+    // Space out the canvases more evenly
+    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);       // Battery/BLE at top
+    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 24);   // BLE circle & bongo cat in middle
+    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 0, 48);   // Layer name at bottom
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
