@@ -33,7 +33,7 @@ lv_obj_t *zmk_display_status_screen() {
     zmk_widget_modifiers_init(&modifiers_widget, screen);
     // Position modifiers widget to the right of the bluetooth circle
     lv_obj_align(zmk_widget_modifiers_obj(&modifiers_widget), 
-                 LV_ALIGN_TOP_LEFT, 30, 13);  // Align with bluetooth circle
+                 LV_ALIGN_TOP_LEFT, 30, 10);  // Slightly higher to account for selection lines
 #endif
 
     return screen;
