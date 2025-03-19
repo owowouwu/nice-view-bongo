@@ -572,7 +572,7 @@ static void animation_work_handler(struct k_work *work) {
     k_work_schedule(&animation_work, K_MSEC(next_interval / 2));
 }
 
-static void update_modifiers(struct zmk_widget_status *widget, uint8_t mods) {
+static void set_modifiers(struct zmk_widget_status *widget, uint8_t mods) {
     bool changed = false;
     for (int i = 0; i < NUM_SYMBOLS; i++) {
         bool should_be_active = (mods & modifier_symbols[i]->modifier) != 0;
@@ -588,8 +588,15 @@ static void update_modifiers(struct zmk_widget_status *widget, uint8_t mods) {
     }
 }
 
+static void modifier_status_update_cb(uint8_t state) {
+    struct zmk_widget_status *widget;
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+        set_modifiers(widget, state);
+    }
+}
+
 ZMK_DISPLAY_WIDGET_LISTENER(widget_modifier_status, uint8_t,
-                          update_modifiers, zmk_hid_get_explicit_mods)
+                          modifier_status_update_cb, zmk_hid_get_explicit_mods)
 ZMK_SUBSCRIPTION(widget_modifier_status, zmk_keycode_state_changed);
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
