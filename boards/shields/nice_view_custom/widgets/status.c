@@ -30,6 +30,13 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include "bongocatart.h"
 #include <zmk/hid.h>
 #include <dt-bindings/zmk/modifiers.h>
+#include <zmk/events/keycode_state_changed.h>
+#include <zmk/events/modifiers_state_changed.h>
+#include <zmk/keys.h>
+#include <zmk/events/keycode_state_changed.h>
+#include <zmk/events/modifiers_state_changed.h>
+#include <zmk/events/position_state_changed.h>
+#include <zmk/keycode_events.h>  // This might be needed for keycode event definitions
 
 // Add these with the other LV_IMG_DECLARE statements
 LV_IMG_DECLARE(control_icon);
@@ -601,7 +608,8 @@ static uint8_t modifier_status_get_state(const zmk_event_t *_eh) {
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_modifier_status, uint8_t,
                           modifier_status_update_cb, modifier_status_get_state)
-ZMK_SUBSCRIPTION(widget_modifier_status, zmk_keycode_state_changed);
+ZMK_SUBSCRIPTION(widget_modifier_status, zmk_position_state_changed);   // For bongo cat animation
+ZMK_SUBSCRIPTION(widget_modifier_status, zmk_modifiers_state_changed); // For modifier icons
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
