@@ -577,15 +577,13 @@ static void animation_work_handler(struct k_work *work) {
 }
 
 static void set_modifiers(struct zmk_widget_status *widget, uint8_t mods) {
-    bool changed = false;
+    // Update the state of each modifier
     for (int i = 0; i < NUM_SYMBOLS; i++) {
-        bool should_be_active = (mods & modifier_symbols[i]->modifier) != 0;
-        modifier_symbols[i]->is_active = should_be_active;  // Always update state
-        changed = changed || should_be_active;  // Track if any modifiers are active
+        modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
     }
     
     widget->state.modifiers = mods;
-    draw_middle(widget->obj, widget->cbuf2, &widget->state);  // Always redraw
+    draw_middle(widget->obj, widget->cbuf2, &widget->state);
 }
 
 static void modifier_status_update_cb(uint8_t state) {

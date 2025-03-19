@@ -128,14 +128,26 @@ void init_arc_dsc(lv_draw_arc_dsc_t *arc_dsc, lv_color_t color, uint8_t width) {
 void draw_modifiers(lv_obj_t *canvas, int x, int y) {
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
-    img_dsc.recolor = LVGL_BACKGROUND;
-    img_dsc.recolor_opa = LV_OPA_COVER;
     
-    // Draw each modifier symbol in a row
+    // Line descriptor for active modifiers
+    lv_draw_line_dsc_t line_dsc;
+    init_line_dsc(&line_dsc, LVGL_FOREGROUND, 2);  // Make line thicker (2px)
+    
+    // Draw all modifier symbols and their activation lines
     for (int i = 0; i < NUM_SYMBOLS; i++) {
+        int icon_x = x + (i * 14);
+        
+        // Always draw the modifier icon
+        lv_canvas_draw_img(canvas, icon_x, y - 7, 
+                          modifier_symbols[i]->symbol_dsc, &img_dsc);
+        
+        // If modifier is active, draw line underneath
         if (modifier_symbols[i]->is_active) {
-            lv_canvas_draw_img(canvas, x + (i * 14), y - 7, 
-                             modifier_symbols[i]->symbol_dsc, &img_dsc);
+            lv_point_t points[] = {
+                {icon_x, y + 4},      // Position line below icon
+                {icon_x + 12, y + 4}  // Line width matches icon width
+            };
+            lv_canvas_draw_line(canvas, points, 2, &line_dsc);
         }
     }
 }
