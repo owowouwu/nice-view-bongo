@@ -302,10 +302,8 @@ static void draw_bottom(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_draw_label_dsc_t label_dsc;
     init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_14, LV_TEXT_ALIGN_CENTER);
 
-    // Fill background
     lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
 
-    // Draw layer
     if (state->layer_label == NULL) {
         char text[10] = {};
         sprintf(text, "LAYER %i", state->layer_index);
@@ -314,7 +312,6 @@ static void draw_bottom(lv_obj_t *widget, lv_color_t cbuf[], const struct status
         lv_canvas_draw_text(canvas, 0, 12, 68, &label_dsc, state->layer_label);
     }
 
-    // Rotate canvas
     rotate_canvas(canvas, cbuf);
 }
 
@@ -561,19 +558,16 @@ static void animation_work_handler(struct k_work *work) {
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
-    lv_obj_set_size(widget->obj, 68, 68);  // Overall widget size stays the same
+    lv_obj_set_size(widget->obj, 68, 68);
     
-    // Create the three canvases
     lv_obj_t *top = lv_canvas_create(widget->obj);
     lv_obj_t *middle = lv_canvas_create(widget->obj);
     lv_obj_t *bottom = lv_canvas_create(widget->obj);
 
-    // Set up the canvas buffers
     lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
     lv_canvas_set_buffer(middle, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
-    // Position the canvases - revert to original positions
     lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);
     lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 24);
     lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 0, 48);
@@ -584,7 +578,6 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget_layer_status_init();
     widget_wpm_status_init();
 
-    // Initialize and start the animation timer
     k_work_init_delayable(&animation_work, animation_work_handler);
     k_work_schedule(&animation_work, K_MSEC(IDLE_ANIMATION_INTERVAL));
 
