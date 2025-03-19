@@ -581,11 +581,11 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     // Top canvas (battery & radio) at the top
     lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);
     
-    // Middle canvas (bluetooth profile) below the top
+    // Middle canvas (bluetooth profile) below the WPM graph
     lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 32);
     
-    // Bottom canvas (layer info) at the bottom
-    lv_obj_align(bottom, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    // Bottom canvas (layer info) at the absolute bottom
+    lv_obj_align(bottom, LV_ALIGN_BOTTOM_LEFT, 0, -4);  // -4 to give some margin from bottom
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();

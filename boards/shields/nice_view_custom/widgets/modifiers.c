@@ -173,7 +173,7 @@ ZMK_SUBSCRIPTION(widget_modifiers, zmk_keycode_state_changed);
 int zmk_widget_modifiers_init(struct zmk_widget_modifiers *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
 
-    // Set size for horizontal layout
+    // Set size for horizontal layout - make width wider and height shorter
     lv_obj_set_size(widget->obj, NUM_SYMBOLS * (SIZE_SYMBOLS + 1) + 1, SIZE_SYMBOLS + 3);
     
     static lv_style_t style_line;
@@ -191,7 +191,7 @@ int zmk_widget_modifiers_init(struct zmk_widget_modifiers *widget, lv_obj_t *par
 
     for (int i = 0; i < NUM_SYMBOLS; i++) {
         modifier_symbols[i]->symbol = lv_img_create(widget->obj);
-        // Position symbols horizontally with 1px spacing
+        // Position symbols horizontally with spacing
         lv_obj_align(modifier_symbols[i]->symbol, LV_ALIGN_LEFT_MID, 1 + (SIZE_SYMBOLS + 1) * i, 0);
         lv_img_set_src(modifier_symbols[i]->symbol, modifier_symbols[i]->symbol_dsc);
 
