@@ -114,15 +114,34 @@ static void move_object_x(void *obj, int32_t from, int32_t to) {
     lv_anim_start(&a);
 }
 
+static void anim_y_cb(void *var, int32_t v) {
+    lv_obj_set_y(var, v);
+}
+
+static void move_object_y(void *obj, int32_t from, int32_t to) {
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, obj);
+    lv_anim_set_time(&a, 200);
+    lv_anim_set_exec_cb(&a, anim_y_cb);
+    lv_anim_set_path_cb(&a, lv_anim_path_overshoot);
+    lv_anim_set_values(&a, from, to);
+    lv_anim_start(&a);
+}
+
 static void set_modifiers(lv_obj_t *widget, struct modifiers_state state) {
     for (int i = 0; i < NUM_SYMBOLS; i++) {
         bool mod_is_active = state.modifiers & modifier_symbols[i]->modifier;
 
         if (mod_is_active && !modifier_symbols[i]->is_active) {
-            move_object_x(modifier_symbols[i]->symbol, 1 + (SIZE_SYMBOLS + 1) * i, 2 + (SIZE_SYMBOLS + 1) * i);
+            // Move up slightly when active
+            move_object_y(modifier_symbols[i]->symbol, 1, -1);
+            move_object_y(modifier_symbols[i]->selection_line, SIZE_SYMBOLS + 2, SIZE_SYMBOLS);
             modifier_symbols[i]->is_active = true;
         } else if (!mod_is_active && modifier_symbols[i]->is_active) {
-            move_object_x(modifier_symbols[i]->symbol, 2 + (SIZE_SYMBOLS + 1) * i, 1 + (SIZE_SYMBOLS + 1) * i);
+            // Move back down when inactive
+            move_object_y(modifier_symbols[i]->symbol, -1, 1);
+            move_object_y(modifier_symbols[i]->selection_line, SIZE_SYMBOLS, SIZE_SYMBOLS + 2);
             modifier_symbols[i]->is_active = false;
         }
     }
@@ -162,8 +181,20 @@ ZMK_SUBSCRIPTION(widget_modifiers, zmk_keycode_state_changed);
 int zmk_widget_modifiers_init(struct zmk_widget_modifiers *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
 
-    // Set size for horizontal layout
-    lv_obj_set_size(widget->obj, NUM_SYMBOLS * (SIZE_SYMBOLS + 2), SIZE_SYMBOLS + 4);
+    // Calculate exact size needed:
+    // Width = (number of symbols * symbol size) + (spacing between symbols * (num_symbols - 1)) + padding
+    // Height = symbol size + selection line height + padding
+    const int symbol_spacing = 2;  // Space between symbols
+    const int horizontal_padding = 2;  // Padding on left and right
+    const int vertical_padding = 3;    // Padding for top and bottom
+    const int selection_line_space = 3; // Space for selection line and gap
+
+    int total_width = (NUM_SYMBOLS * SIZE_SYMBOLS) + 
+                     (symbol_spacing * (NUM_SYMBOLS - 1)) + 
+                     horizontal_padding;
+    int total_height = SIZE_SYMBOLS + selection_line_space + vertical_padding;
+
+    lv_obj_set_size(widget->obj, total_width, total_height);
     
     static lv_style_t style_line;
     lv_style_init(&style_line);
@@ -175,17 +206,21 @@ int zmk_widget_modifiers_init(struct zmk_widget_modifiers *widget, lv_obj_t *par
     lv_style_set_border_width(&style_cont, 0);
     lv_obj_add_style(widget->obj, &style_cont, 0);
 
+    // Horizontal selection line points
     static const lv_point_t selection_line_points[] = { {0, 0}, {SIZE_SYMBOLS, 0} };
 
     for (int i = 0; i < NUM_SYMBOLS; i++) {
         modifier_symbols[i]->symbol = lv_img_create(widget->obj);
-        // Position symbols horizontally with spacing
-        lv_obj_align(modifier_symbols[i]->symbol, LV_ALIGN_LEFT_MID, 1 + (SIZE_SYMBOLS + 1) * i, 0);
+        
+        // Position symbols horizontally with proper spacing
+        int x_pos = (horizontal_padding/2) + (i * (SIZE_SYMBOLS + symbol_spacing));
+        lv_obj_align(modifier_symbols[i]->symbol, LV_ALIGN_TOP_LEFT, x_pos, vertical_padding/2);
         lv_img_set_src(modifier_symbols[i]->symbol, modifier_symbols[i]->symbol_dsc);
 
         modifier_symbols[i]->selection_line = lv_line_create(widget->obj);
         lv_line_set_points(modifier_symbols[i]->selection_line, selection_line_points, 2);
         lv_obj_add_style(modifier_symbols[i]->selection_line, &style_line, 0);
+        
         // Position selection line below each symbol
         lv_obj_align_to(modifier_symbols[i]->selection_line, modifier_symbols[i]->symbol, 
                        LV_ALIGN_OUT_BOTTOM_LEFT, 0, 1);
