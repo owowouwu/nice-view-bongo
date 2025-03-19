@@ -33,10 +33,6 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/events/keycode_state_changed.h>
 #include <zmk/events/modifiers_state_changed.h>
 #include <zmk/keys.h>
-#include <zmk/events/keycode_state_changed.h>
-#include <zmk/events/modifiers_state_changed.h>
-#include <zmk/events/position_state_changed.h>
-#include <zmk/keycode_events.h>  // This might be needed for keycode event definitions
 
 // Add these with the other LV_IMG_DECLARE statements
 LV_IMG_DECLARE(control_icon);
