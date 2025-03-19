@@ -579,9 +579,9 @@ static void animation_work_handler(struct k_work *work) {
 static void set_modifiers(struct zmk_widget_status *widget, uint8_t mods) {
     // Update the state of each modifier
     for (int i = 0; i < NUM_SYMBOLS; i++) {
+        // When a modifier bit is set (mods & modifier), that means the key is pressed
         modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
     }
-    
     widget->state.modifiers = mods;
     draw_middle(widget->obj, widget->cbuf2, &widget->state);
 }
@@ -594,6 +594,12 @@ static void modifier_status_update_cb(uint8_t state) {
 }
 
 static uint8_t modifier_status_get_state(const zmk_event_t *_eh) {
+    const struct zmk_modifiers_state_changed *mods_ev = as_zmk_modifiers_state_changed(_eh);
+    if (mods_ev != NULL) {
+        // If this is a modifier event, use the new state
+        return mods_ev->modifiers;
+    }
+    // Otherwise, get the current state
     return zmk_hid_get_explicit_mods();
 }
 
