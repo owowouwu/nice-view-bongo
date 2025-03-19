@@ -25,8 +25,9 @@ lv_obj_t *zmk_display_status_screen() {
 
 #if IS_ENABLED(CONFIG_NICE_VIEW_WIDGET_STATUS)
     zmk_widget_status_init(&status_widget, screen);
-    // Position status widget on the left side
-    lv_obj_align(zmk_widget_status_obj(&status_widget), LV_ALIGN_LEFT_MID, 0, 0);
+    // Position status widget at the top of the left side
+    // After 90-degree clockwise rotation, this will be at the right of the top
+    lv_obj_align(zmk_widget_status_obj(&status_widget), LV_ALIGN_LEFT_TOP, 0, 0);
 #endif
 
 #if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
