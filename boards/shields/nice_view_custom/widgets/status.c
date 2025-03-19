@@ -230,13 +230,13 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_canvas_draw_arc(canvas, x, y, 13, 0, 360, &arc_dsc);
     lv_canvas_draw_arc(canvas, x, y, 9, 0, 359, &arc_dsc_filled);
 
-    // Draw profile number
+    // Draw profile number - adjust x-4, y-6 to x-6, y-8 for better centering
     char label[2];
     snprintf(label, sizeof(label), "%d", state->active_profile_index + 1);
-    lv_canvas_draw_text(canvas, x - 4, y - 6, 12, &label_dsc_black, label);
+    lv_canvas_draw_text(canvas, x - 6, y - 8, 12, &label_dsc_black, label);
 
     // Draw modifiers to the right of the BLE circle
-    draw_modifiers(canvas, x + 17, y);  // Position modifiers 17 pixels to the right of BLE circle
+    draw_modifiers(canvas, x + 12, y);  // Move modifiers closer to BLE circle
 
     // Calculate average WPM over last 5 seconds
     int recent_wpm = 0;
@@ -580,16 +580,12 @@ static void set_modifiers(struct zmk_widget_status *widget, uint8_t mods) {
     bool changed = false;
     for (int i = 0; i < NUM_SYMBOLS; i++) {
         bool should_be_active = (mods & modifier_symbols[i]->modifier) != 0;
-        if (should_be_active != modifier_symbols[i]->is_active) {
-            modifier_symbols[i]->is_active = should_be_active;
-            changed = true;
-        }
+        modifier_symbols[i]->is_active = should_be_active;  // Always update state
+        changed = changed || should_be_active;  // Track if any modifiers are active
     }
     
-    if (changed) {
-        widget->state.modifiers = mods;
-        draw_middle(widget->obj, widget->cbuf2, &widget->state);
-    }
+    widget->state.modifiers = mods;
+    draw_middle(widget->obj, widget->cbuf2, &widget->state);  // Always redraw
 }
 
 static void modifier_status_update_cb(uint8_t state) {
