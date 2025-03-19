@@ -31,9 +31,11 @@ lv_obj_t *zmk_display_status_screen() {
 
 #if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
     zmk_widget_modifiers_init(&modifiers_widget, screen);
-    // Position modifiers widget to the right of the bluetooth profile circle
+    // Position modifiers widget to the right of the bluetooth circle
+    // The 45 pixels from left aligns it after the bluetooth circle (34 + 13 radius)
+    // The 32 pixels down aligns it with the bluetooth circle's vertical position
     lv_obj_align(zmk_widget_modifiers_obj(&modifiers_widget), 
-                 LV_ALIGN_LEFT_MID, 28, 16); // Adjust these values as needed
+                 LV_ALIGN_TOP_LEFT, 45, 32);
 #endif
 
     return screen;
