@@ -134,14 +134,14 @@ static void set_modifiers(lv_obj_t *widget, struct modifiers_state state) {
         bool mod_is_active = state.modifiers & modifier_symbols[i]->modifier;
 
         if (mod_is_active && !modifier_symbols[i]->is_active) {
-            // Move up slightly when active
-            move_object_y(modifier_symbols[i]->symbol, 1, -1);
-            move_object_y(modifier_symbols[i]->selection_line, SIZE_SYMBOLS + 2, SIZE_SYMBOLS);
+            // Move symbol up and line down when active
+            move_object_y(modifier_symbols[i]->symbol, 0, -2);
+            move_object_y(modifier_symbols[i]->selection_line, SIZE_SYMBOLS + 1, SIZE_SYMBOLS + 3);
             modifier_symbols[i]->is_active = true;
         } else if (!mod_is_active && modifier_symbols[i]->is_active) {
-            // Move back down when inactive
-            move_object_y(modifier_symbols[i]->symbol, -1, 1);
-            move_object_y(modifier_symbols[i]->selection_line, SIZE_SYMBOLS, SIZE_SYMBOLS + 2);
+            // Move back to original position when inactive
+            move_object_y(modifier_symbols[i]->symbol, -2, 0);
+            move_object_y(modifier_symbols[i]->selection_line, SIZE_SYMBOLS + 3, SIZE_SYMBOLS + 1);
             modifier_symbols[i]->is_active = false;
         }
     }
@@ -181,12 +181,10 @@ ZMK_SUBSCRIPTION(widget_modifiers, zmk_keycode_state_changed);
 int zmk_widget_modifiers_init(struct zmk_widget_modifiers *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
 
-    // Calculate exact size needed:
-    // Width = (number of symbols * symbol size) + (spacing between symbols * (num_symbols - 1)) + padding
-    // Height = symbol size + selection line height + padding
+    // Calculate exact size needed
     const int symbol_spacing = 2;  // Space between symbols
     const int horizontal_padding = 2;  // Padding on left and right
-    const int vertical_padding = 3;    // Padding for top and bottom
+    const int vertical_padding = 2;    // Padding for top and bottom
     const int selection_line_space = 3; // Space for selection line and gap
 
     int total_width = (NUM_SYMBOLS * SIZE_SYMBOLS) + 
@@ -206,8 +204,8 @@ int zmk_widget_modifiers_init(struct zmk_widget_modifiers *widget, lv_obj_t *par
     lv_style_set_border_width(&style_cont, 0);
     lv_obj_add_style(widget->obj, &style_cont, 0);
 
-    // Horizontal selection line points
-    static const lv_point_t selection_line_points[] = { {0, 0}, {SIZE_SYMBOLS, 0} };
+    // Selection line points - make it the full width of the symbol
+    static const lv_point_t selection_line_points[] = { {0, 0}, {SIZE_SYMBOLS - 1, 0} };
 
     for (int i = 0; i < NUM_SYMBOLS; i++) {
         modifier_symbols[i]->symbol = lv_img_create(widget->obj);
@@ -223,7 +221,7 @@ int zmk_widget_modifiers_init(struct zmk_widget_modifiers *widget, lv_obj_t *par
         
         // Position selection line below each symbol
         lv_obj_align_to(modifier_symbols[i]->selection_line, modifier_symbols[i]->symbol, 
-                       LV_ALIGN_OUT_BOTTOM_LEFT, 0, 1);
+                       LV_ALIGN_OUT_BOTTOM_LEFT, 0, SIZE_SYMBOLS + 1);
     }
 
     sys_slist_append(&widgets, &widget->node);
