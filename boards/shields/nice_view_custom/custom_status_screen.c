@@ -26,14 +26,15 @@ lv_obj_t *zmk_display_status_screen() {
 #if IS_ENABLED(CONFIG_NICE_VIEW_WIDGET_STATUS)
     zmk_widget_status_init(&status_widget, screen);
     // Position status widget on the left side
-    lv_obj_align(zmk_widget_status_obj(&status_widget), LV_ALIGN_LEFT_MID, 4, 0);
+    lv_obj_align(zmk_widget_status_obj(&status_widget), LV_ALIGN_LEFT_MID, 0, 0);
 #endif
 
 #if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
     zmk_widget_modifiers_init(&modifiers_widget, screen);
-    // Position modifiers widget horizontally to the right of the bluetooth circle
-    lv_obj_align(zmk_widget_modifiers_obj(&modifiers_widget), 
-                 LV_ALIGN_TOP_LEFT, 30, 45);  // x=30 to clear bluetooth circle, y=45 to align with it
+    // Position modifiers widget to the right of the status widget
+    lv_obj_align_to(zmk_widget_modifiers_obj(&modifiers_widget), 
+                    zmk_widget_status_obj(&status_widget),
+                    LV_ALIGN_OUT_RIGHT_MID, 10, 0);  // 10px gap between widgets
 #endif
 
     return screen;

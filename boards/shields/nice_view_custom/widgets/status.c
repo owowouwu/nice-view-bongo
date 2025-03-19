@@ -563,8 +563,8 @@ static void animation_work_handler(struct k_work *work) {
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
-    lv_obj_set_size(widget->obj, 160, 68);
-
+    lv_obj_set_size(widget->obj, 68, 68);  // Reduce width to match CANVAS_SIZE
+    
     // Create the three canvases
     lv_obj_t *top = lv_canvas_create(widget->obj);
     lv_obj_t *middle = lv_canvas_create(widget->obj);
@@ -576,13 +576,8 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
     // Position the canvases with better spacing:
-    // Top canvas (battery & radio) at the top
     lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);
-    
-    // Middle canvas (bluetooth profile) with more space
     lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 24);
-    
-    // Bottom canvas (layer info) at the absolute bottom
     lv_obj_align(bottom, LV_ALIGN_BOTTOM_LEFT, 0, -2);
 
     sys_slist_append(&widgets, &widget->node);
