@@ -28,6 +28,19 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/wpm.h>
 #include <zmk/events/position_state_changed.h>
 #include "bongocatart.h"
+#include <zmk/hid.h>
+#include <dt-bindings/zmk/modifiers.h>
+
+// Add these with the other LV_IMG_DECLARE statements
+LV_IMG_DECLARE(control_icon);
+LV_IMG_DECLARE(shift_icon);
+#if IS_ENABLED(CONFIG_ZMK_DONGLE_DISPLAY_MAC_MODIFIERS)
+LV_IMG_DECLARE(opt_icon);
+LV_IMG_DECLARE(cmd_icon);
+#else
+LV_IMG_DECLARE(alt_icon);
+LV_IMG_DECLARE(win_icon);
+#endif
 
 // Define wpm_status_state before its first use
 struct wpm_status_state {
@@ -208,15 +221,18 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
 
     // Draw single BLE profile circle at the top
-    int x = 13, y = 13;  // Moved from x=34 to x=13 to be more to the left
+    int x = 13, y = 13;  // BLE circle position
 
     lv_canvas_draw_arc(canvas, x, y, 13, 0, 360, &arc_dsc);
     lv_canvas_draw_arc(canvas, x, y, 9, 0, 359, &arc_dsc_filled);
 
+    // Draw profile number
     char label[2];
-    // Center the profile number in the circle
     snprintf(label, sizeof(label), "%d", state->active_profile_index + 1);
     lv_canvas_draw_text(canvas, x - 4, y - 6, 12, &label_dsc_black, label);
+
+    // Draw modifiers to the right of the BLE circle
+    draw_modifiers(canvas, x + 17, y);  // Position modifiers 17 pixels to the right of BLE circle
 
     // Calculate average WPM over last 5 seconds
     int recent_wpm = 0;
@@ -555,6 +571,95 @@ static void animation_work_handler(struct k_work *work) {
     }
     k_work_schedule(&animation_work, K_MSEC(next_interval / 2));
 }
+
+static void draw_modifiers(lv_obj_t *canvas, int x, int y) {
+    lv_draw_img_dsc_t img_dsc;
+    lv_draw_img_dsc_init(&img_dsc);
+    
+    // Draw each modifier symbol in a row
+    for (int i = 0; i < NUM_SYMBOLS; i++) {
+        if (modifier_symbols[i]->is_active) {
+            lv_canvas_draw_img(canvas, x + (i * 16), y - 7, 
+                             modifier_symbols[i]->symbol_dsc, &img_dsc);
+        }
+    }
+}
+
+// Add after the other struct definitions
+struct modifier_symbol {    
+    uint8_t modifier;
+    const lv_img_dsc_t *symbol_dsc;
+    bool is_active;
+};
+
+static struct modifier_symbol ms_control = {
+    .modifier = MOD_LCTL | MOD_RCTL,
+    .symbol_dsc = &control_icon,
+};
+
+static struct modifier_symbol ms_shift = {
+    .modifier = MOD_LSFT | MOD_RSFT,
+    .symbol_dsc = &shift_icon,
+};
+
+#if IS_ENABLED(CONFIG_ZMK_DONGLE_DISPLAY_MAC_MODIFIERS)
+static struct modifier_symbol ms_opt = {
+    .modifier = MOD_LALT | MOD_RALT,
+    .symbol_dsc = &opt_icon,
+};
+
+static struct modifier_symbol ms_cmd = {
+    .modifier = MOD_LGUI | MOD_RGUI,
+    .symbol_dsc = &cmd_icon,
+};
+
+static struct modifier_symbol *modifier_symbols[] = {
+    &ms_control,
+    &ms_opt,
+    &ms_cmd,
+    &ms_shift
+};
+#else
+static struct modifier_symbol ms_alt = {
+    .modifier = MOD_LALT | MOD_RALT,
+    .symbol_dsc = &alt_icon,
+};
+
+static struct modifier_symbol ms_win = {
+    .modifier = MOD_LGUI | MOD_RGUI,
+    .symbol_dsc = &win_icon,
+};
+
+static struct modifier_symbol *modifier_symbols[] = {
+    &ms_win,
+    &ms_alt,
+    &ms_control,
+    &ms_shift
+};
+#endif
+
+#define NUM_SYMBOLS (sizeof(modifier_symbols) / sizeof(struct modifier_symbol *))
+
+static void update_modifiers(struct zmk_widget_status *widget, uint8_t mods) {
+    bool changed = false;
+    
+    for (int i = 0; i < NUM_SYMBOLS; i++) {
+        bool should_be_active = (mods & modifier_symbols[i]->modifier) != 0;
+        if (should_be_active != modifier_symbols[i]->is_active) {
+            modifier_symbols[i]->is_active = should_be_active;
+            changed = true;
+        }
+    }
+    
+    if (changed) {
+        widget->state.modifiers = mods;
+        draw_middle(widget->obj, widget->cbuf2, &widget->state);
+    }
+}
+
+ZMK_DISPLAY_WIDGET_LISTENER(widget_modifier_status, uint8_t,
+                          update_modifiers, zmk_hid_get_explicit_mods)
+ZMK_SUBSCRIPTION(widget_modifier_status, zmk_keycode_state_changed);
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
