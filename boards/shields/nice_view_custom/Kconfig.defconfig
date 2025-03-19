@@ -59,9 +59,9 @@ config ZMK_DISPLAY_STATUS_SCREEN_BUILT_IN
 config ZMK_WIDGET_MODIFIERS
     bool "Show modifier status widget"
     depends on ZMK_DISPLAY
-    select LV_USE_LINE 
+    select LV_USE_LINE
     select ZMK_KEYCODE_STATE_CHANGED
-    select ZMK_ENDPOINTS
+    select ZMK_ENDPOINTS if !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
 
 config ZMK_DISPLAY
     default y

@@ -12,6 +12,8 @@ if(CONFIG_ZMK_DISPLAY)
             zephyr_library_sources(
                 widgets/status.c
                 widgets/bongocatart.c
+                widgets/modifiers.c
+                widgets/modifiers_sym.c
             )
         else()
             zephyr_library_sources(
@@ -19,14 +21,6 @@ if(CONFIG_ZMK_DISPLAY)
                 widgets/peripheral_status.c
             )
         endif()
-    endif()
-
-    # Add modifiers widget sources if enabled
-    if(CONFIG_ZMK_WIDGET_MODIFIERS)
-        zephyr_library_sources(
-            widgets/modifiers.c
-            widgets/modifiers_sym.c
-        )
     endif()
 
     target_include_directories(app PRIVATE include)

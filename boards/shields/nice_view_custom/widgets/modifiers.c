@@ -145,7 +145,20 @@ void modifiers_update_cb(struct modifiers_state state) {
 }
 
 static struct modifiers_state modifiers_get_state(const zmk_event_t *eh) {
+#if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
+    // Central side uses endpoints
     uint8_t mods = zmk_endpoints_get_explicit_mods();
+#else
+    // Peripheral side doesn't have endpoints access
+    uint8_t mods = 0; // We'll need to get this from the keycode state changed event
+    const struct zmk_keycode_state_changed *ev = as_zmk_keycode_state_changed(eh);
+    if (ev != NULL && ev->state) {
+        // Update mods based on keycode events
+        if (ev->keycode >= HID_KEYBOARD_LCTRL && ev->keycode <= HID_KEYBOARD_RGUI) {
+            mods |= BIT(ev->keycode - HID_KEYBOARD_LCTRL);
+        }
+    }
+#endif
     MOD_DBG("Getting modifier state: 0x%02x", mods);
     return (struct modifiers_state) {
         .modifiers = mods
