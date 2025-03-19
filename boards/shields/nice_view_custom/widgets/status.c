@@ -619,10 +619,15 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(middle, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
-    // Space out the canvases evenly
-    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);          // Position at top
-    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 68);      // Position in middle
-    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 0, 136);     // Position at bottom
+    // Position each canvas in its own vertical section
+    lv_obj_set_pos(top, 0, 0);          // Top section
+    lv_obj_set_pos(middle, 0, 68);      // Middle section
+    lv_obj_set_pos(bottom, 0, 136);     // Bottom section
+
+    // Make sure each canvas has its own space
+    lv_obj_set_size(top, CANVAS_SIZE, CANVAS_SIZE);
+    lv_obj_set_size(middle, CANVAS_SIZE, CANVAS_SIZE);
+    lv_obj_set_size(bottom, CANVAS_SIZE, CANVAS_SIZE);
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
