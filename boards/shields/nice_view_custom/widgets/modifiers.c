@@ -181,12 +181,15 @@ ZMK_SUBSCRIPTION(widget_modifiers, zmk_keycode_state_changed);
 int zmk_widget_modifiers_init(struct zmk_widget_modifiers *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
 
-    // Calculate exact size needed
+    // Calculate exact size needed for horizontal layout
+    // Width = (number of symbols * symbol size) + (spacing between symbols * (num_symbols - 1)) + padding
+    // Height = symbol size + selection line height + padding
     const int symbol_spacing = 2;  // Space between symbols
     const int horizontal_padding = 2;  // Padding on left and right
     const int vertical_padding = 2;    // Padding for top and bottom
     const int selection_line_space = 3; // Space for selection line and gap
 
+    // For horizontal layout, width needs to accommodate all symbols side by side
     int total_width = (NUM_SYMBOLS * SIZE_SYMBOLS) + 
                      (symbol_spacing * (NUM_SYMBOLS - 1)) + 
                      horizontal_padding;
@@ -204,13 +207,13 @@ int zmk_widget_modifiers_init(struct zmk_widget_modifiers *widget, lv_obj_t *par
     lv_style_set_border_width(&style_cont, 0);
     lv_obj_add_style(widget->obj, &style_cont, 0);
 
-    // Selection line points - make it the full width of the symbol
+    // Horizontal selection line points
     static const lv_point_t selection_line_points[] = { {0, 0}, {SIZE_SYMBOLS - 1, 0} };
 
     for (int i = 0; i < NUM_SYMBOLS; i++) {
         modifier_symbols[i]->symbol = lv_img_create(widget->obj);
         
-        // Position symbols horizontally with proper spacing
+        // Position symbols in a horizontal row with proper spacing
         int x_pos = (horizontal_padding/2) + (i * (SIZE_SYMBOLS + symbol_spacing));
         lv_obj_align(modifier_symbols[i]->symbol, LV_ALIGN_TOP_LEFT, x_pos, vertical_padding/2);
         lv_img_set_src(modifier_symbols[i]->symbol, modifier_symbols[i]->symbol_dsc);
@@ -221,7 +224,7 @@ int zmk_widget_modifiers_init(struct zmk_widget_modifiers *widget, lv_obj_t *par
         
         // Position selection line below each symbol
         lv_obj_align_to(modifier_symbols[i]->selection_line, modifier_symbols[i]->symbol, 
-                       LV_ALIGN_OUT_BOTTOM_LEFT, 0, SIZE_SYMBOLS + 1);
+                       LV_ALIGN_OUT_BOTTOM_LEFT, 0, 1);
     }
 
     sys_slist_append(&widgets, &widget->node);
