@@ -619,15 +619,22 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(middle, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
-    // Position each canvas in its own vertical section
-    lv_obj_set_pos(top, 0, 0);          // Top section
-    lv_obj_set_pos(middle, 0, 68);      // Middle section
-    lv_obj_set_pos(bottom, 0, 136);     // Bottom section
+    // Set the layout of the parent container
+    lv_obj_set_layout(widget->obj, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(widget->obj, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(widget->obj, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
 
-    // Make sure each canvas has its own space
+    // Configure each canvas
     lv_obj_set_size(top, CANVAS_SIZE, CANVAS_SIZE);
     lv_obj_set_size(middle, CANVAS_SIZE, CANVAS_SIZE);
     lv_obj_set_size(bottom, CANVAS_SIZE, CANVAS_SIZE);
+
+    // Remove margins and padding
+    lv_obj_set_style_pad_all(widget->obj, 0, LV_PART_MAIN);
+    lv_obj_set_style_margin_all(widget->obj, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(top, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(middle, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(bottom, 0, LV_PART_MAIN);
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
