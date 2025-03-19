@@ -209,13 +209,13 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
 
     // Draw single BLE profile circle at the top
-    int x = 34, y = 13;
+    int x = 13, y = 13;  // Moved from x=34 to x=13 to be more to the left
 
     lv_canvas_draw_arc(canvas, x, y, 13, 0, 360, &arc_dsc);
     lv_canvas_draw_arc(canvas, x, y, 9, 0, 359, &arc_dsc_filled);
 
     char label[2];
-    // Center the actuve bluetooth profile number in the circle
+    // Center the profile number in the circle
     snprintf(label, sizeof(label), "%d", state->active_profile_index + 1);
     lv_canvas_draw_text(canvas, x - 4, y - 6, 12, &label_dsc_black, label);
 
