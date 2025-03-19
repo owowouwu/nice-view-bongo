@@ -16,7 +16,6 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <dt-bindings/zmk/modifiers.h>
 
 #include <zmk/keys.h>
-#include <zmk/keyboard.h>
 
 #include <lvgl.h>
 
@@ -144,7 +143,7 @@ void modifiers_update_cb(struct modifiers_state state) {
 }
 
 static struct modifiers_state modifiers_get_state(const zmk_event_t *eh) {
-    uint8_t mods = zmk_keyboard_get_mods();
+    uint8_t mods = zmk_get_active_mods();
     MOD_DBG("Getting modifier state: 0x%02x", mods);
     return (struct modifiers_state) {
         .modifiers = mods
