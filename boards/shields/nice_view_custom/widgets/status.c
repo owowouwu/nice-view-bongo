@@ -149,10 +149,9 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
 
     lv_canvas_draw_text(canvas, 0, 0, CANVAS_SIZE, &label_dsc, output_text);
 
-    // Draw WPM
-   #if IS_ENABLED(CONFIG_ZMK_WPM_GRAPH_ENABLED)
-    lv_canvas_draw_rect(canvas, 0, 21, 68, 42, &rect_white_dsc);
-    lv_canvas_draw_rect(canvas, 1, 22, 66, 40, &rect_black_dsc);
+    // Draw WPM with smaller rectangle
+    #if IS_ENABLED(CONFIG_ZMK_WPM_GRAPH_ENABLED)
+    lv_canvas_draw_rect(canvas, 1, 22, 66, 38, &rect_black_dsc);  // Just use black background
 
     char wpm_text[6] = {};
     snprintf(wpm_text, sizeof(wpm_text), "%d", state->wpm[9]);
@@ -284,9 +283,8 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     // Reset key_released flag after handling
     key_released = false;
 
-    // Draw bongo cat animation frame
-    lv_canvas_draw_rect(canvas, 0, 28, 68, 40, &rect_white_dsc);
-    lv_canvas_draw_rect(canvas, 1, 29, 66, 38, &rect_black_dsc);
+    // Draw bongo cat animation frame - make the rectangle smaller and positioned only around the cat
+    lv_canvas_draw_rect(canvas, 0, 28, 68, 38, &rect_black_dsc);  // Just use black background
     
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
@@ -577,15 +575,15 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(middle, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
-    // Position the canvases:
+    // Position the canvases with better spacing:
     // Top canvas (battery & radio) at the top
     lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);
     
-    // Middle canvas (bluetooth profile) below the WPM graph
-    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 32);
+    // Middle canvas (bluetooth profile) with more space
+    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 0, 24);
     
     // Bottom canvas (layer info) at the absolute bottom
-    lv_obj_align(bottom, LV_ALIGN_BOTTOM_LEFT, 0, -4);  // -4 to give some margin from bottom
+    lv_obj_align(bottom, LV_ALIGN_BOTTOM_LEFT, 0, -2);
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
