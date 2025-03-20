@@ -630,6 +630,12 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     k_work_init_delayable(&animation_work, animation_work_handler);
     k_work_schedule(&animation_work, K_MSEC(IDLE_ANIMATION_INTERVAL));
 
+    // Initialize modifier states to inactive (no underlines)
+    for (int i = 0; i < NUM_SYMBOLS; i++) {
+        modifier_symbols[i]->is_active = false;
+    }
+    widget->state.modifiers = 0;
+
     return 0;
 }
 
