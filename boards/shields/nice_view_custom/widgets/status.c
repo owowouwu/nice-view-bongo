@@ -577,8 +577,13 @@ static void animation_work_handler(struct k_work *work) {
 }
 
 static void set_modifiers(struct zmk_widget_status *widget, uint8_t mods) {
+    LOG_DBG("Setting modifiers: %02x", mods);  // Add debug logging
     for (int i = 0; i < NUM_SYMBOLS; i++) {
+        bool was_active = modifier_symbols[i]->is_active;
         modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
+        if (was_active != modifier_symbols[i]->is_active) {
+            LOG_DBG("Modifier %d changed: %d -> %d", i, was_active, modifier_symbols[i]->is_active);
+        }
     }
     widget->state.modifiers = mods;
     draw_middle(widget->obj, widget->cbuf2, &widget->state);
@@ -593,10 +598,17 @@ static void modifier_status_update_cb(uint8_t state) {
 
 static uint8_t modifier_status_get_state(const zmk_event_t *_eh) {
     const struct zmk_modifiers_state_changed *mods_ev = as_zmk_modifiers_state_changed(_eh);
+    uint8_t mods;
+    
     if (mods_ev != NULL) {
-        return mods_ev->modifiers;
+        mods = mods_ev->modifiers;
+        LOG_DBG("Got modifier event: %02x", mods);
+    } else {
+        mods = zmk_hid_get_explicit_mods();
+        LOG_DBG("Got explicit mods: %02x", mods);
     }
-    return zmk_hid_get_explicit_mods();
+    
+    return mods;
 }
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_modifier_status, uint8_t,
