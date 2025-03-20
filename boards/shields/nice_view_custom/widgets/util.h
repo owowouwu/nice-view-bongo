@@ -26,7 +26,7 @@ struct status_state {
     uint8_t layer_index;
     const char *layer_label;
     uint8_t wpm[10];
-    uint8_t modifiers;  // For modifier key states
+    uint8_t modifiers;  // Modifier state field is here
 #else
     bool connected;
 #endif
