@@ -577,13 +577,17 @@ static void animation_work_handler(struct k_work *work) {
 }
 
 static void set_modifiers(struct zmk_widget_status *widget, uint8_t mods) {
-    LOG_INF("Setting modifiers: %02x", mods);  // Changed to INF
+#if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
+    LOG_INF("Setting modifiers: %02x", mods);
+#endif
     for (int i = 0; i < NUM_SYMBOLS; i++) {
         bool was_active = modifier_symbols[i]->is_active;
         modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
+#if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
         if (was_active != modifier_symbols[i]->is_active) {
             LOG_INF("Modifier %d changed: %d -> %d", i, was_active, modifier_symbols[i]->is_active);
         }
+#endif
     }
     widget->state.modifiers = mods;
     draw_middle(widget->obj, widget->cbuf2, &widget->state);
@@ -602,10 +606,14 @@ static uint8_t modifier_status_get_state(const zmk_event_t *_eh) {
     
     if (mods_ev != NULL) {
         mods = mods_ev->modifiers;
+#if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
         LOG_INF("Got modifier event: %02x", mods);
+#endif
     } else {
         mods = zmk_hid_get_explicit_mods();
+#if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
         LOG_INF("Got explicit mods: %02x", mods);
+#endif
     }
     
     return mods;
