@@ -129,24 +129,17 @@ void draw_modifiers(lv_obj_t *canvas, int x, int y) {
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
     
-    // For 1-bit indexed images, recolor to match display mode
-    img_dsc.recolor = LVGL_FOREGROUND;
-    img_dsc.recolor_opa = LV_OPA_COVER;
+    // Remove recoloring - let icons use their natural colors
+    // The icons are already defined with the correct color palette in modifiers_sym.c
     
     // Line descriptor for active modifiers
     lv_draw_line_dsc_t line_dsc;
     init_line_dsc(&line_dsc, LVGL_FOREGROUND, 2);
     
-    // Calculate starting x to center the modifiers
-    // Total width needed = 14 pixels * 4 modifiers = 56 pixels
-    // Canvas width = 68 pixels
-    // Left margin = (68 - 56) / 2 = 6 pixels
-    int start_x = 6;
-    
     for (int i = 0; i < NUM_SYMBOLS; i++) {
-        int icon_x = start_x + (i * 14);
+        int icon_x = x + (i * 14);
         
-        // Draw the modifier icon
+        // Draw the modifier icon with original colors
         lv_canvas_draw_img(canvas, icon_x, y - 7, 
                           modifier_symbols[i]->symbol_dsc, &img_dsc);
         
