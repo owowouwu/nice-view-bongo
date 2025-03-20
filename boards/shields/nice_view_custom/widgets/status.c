@@ -593,22 +593,15 @@ static void modifier_status_update_cb(uint8_t state) {
 
 static uint8_t modifier_status_get_state(const zmk_event_t *_eh) {
     const struct zmk_modifiers_state_changed *mods_ev = as_zmk_modifiers_state_changed(_eh);
-    uint8_t mods;
-    
     if (mods_ev != NULL) {
-        mods = mods_ev->modifiers;
-    } else {
-        mods = zmk_hid_get_explicit_mods();
+        return mods_ev->modifiers;
     }
-    
-    // No need to invert - the bits should be SET (1) when pressed
-    return mods;
+    return zmk_hid_get_explicit_mods();
 }
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_modifier_status, uint8_t,
                           modifier_status_update_cb, modifier_status_get_state)
-ZMK_SUBSCRIPTION(widget_modifier_status, zmk_position_state_changed);   // For bongo cat animation
-ZMK_SUBSCRIPTION(widget_modifier_status, zmk_modifiers_state_changed); // For modifier icons
+ZMK_SUBSCRIPTION(widget_modifier_status, zmk_modifiers_state_changed);
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
