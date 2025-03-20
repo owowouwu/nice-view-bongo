@@ -231,8 +231,8 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_canvas_draw_arc(canvas, x, y, 9, 0, 359, &arc_dsc_filled);
 
     // Draw profile number - just move up 2 more pixels
-    char label[2];
-    snprintf(label, sizeof(label), "%d", state->active_profile_index + 1);
+    char label[2];  // Space for one digit plus null terminator
+    snprintf(label, sizeof(label), "%" PRIu8, (uint8_t)(state->active_profile_index + 1));
     lv_canvas_draw_text(canvas, x - 6, y - 10, 12, &label_dsc_black, label);  // Keep black text
 
     // Draw modifiers to the right of the BLE circle
@@ -258,23 +258,17 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     }
 
     // Determine which animation frame to use
-    const lv_img_dsc_t *current_frame;
+    const lv_img_dsc_t *current_frame = &bongo_resting;  // Default to resting frame
     
     if (current_anim_state == ANIM_STATE_CASUAL) {
         if (key_pressed) {
-            // Show alternating left/right frames on press
             current_frame = use_first_frame ? &bongo_casualright : &bongo_casualleft;
         } else if (key_released) {
-            // Always show resting frame on release
             current_frame = &bongo_resting;
-            // Toggle frame choice for next press
             use_first_frame = !use_first_frame;
-            
-            // Reset breathing cycle to start with inhale after typing
             current_idle_state = IDLE_INHALE;
             last_idle_update = k_uptime_get_32();
         } else {
-            // Handle idle animation based on current state
             switch (current_idle_state) {
                 case IDLE_INHALE:
                     current_frame = &bongo_inhale;
@@ -288,10 +282,12 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
                 case IDLE_REST2:
                     current_frame = &bongo_resting;
                     break;
+                default:
+                    current_frame = &bongo_resting;  // Handle any unexpected states
+                    break;
             }
         }
     } else { // ANIM_STATE_FRENZIED
-        // Keep existing furious animation logic
         if (key_pressed || key_released) {
             current_frame = use_first_frame ? &bongo_furiousup : &bongo_furiousdown;
             use_first_frame = !use_first_frame;

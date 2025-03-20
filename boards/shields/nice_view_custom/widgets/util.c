@@ -129,11 +129,9 @@ void draw_modifiers(lv_obj_t *canvas, int x, int y) {
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
     
-    // Only recolor the black parts (index 1) of the icon
+    // For 1-bit indexed images, recolor to match display mode
     img_dsc.recolor = LVGL_FOREGROUND;
     img_dsc.recolor_opa = LV_OPA_COVER;
-    // Tell LVGL which color to recolor (the black parts)
-    img_dsc.recolor_filtered = true;
     
     // Line descriptor for active modifiers
     lv_draw_line_dsc_t line_dsc;
