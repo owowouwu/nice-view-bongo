@@ -72,14 +72,16 @@ struct layer_status_state {
 enum anim_state {
     ANIM_STATE_CASUAL,
     ANIM_STATE_FRENZIED
-} current_anim_state = ANIM_STATE_CASUAL;
+};
+static enum anim_state current_anim_state = ANIM_STATE_CASUAL;
 
 enum idle_anim_state {
     IDLE_INHALE,
     IDLE_REST1,
     IDLE_EXHALE,
     IDLE_REST2
-} current_idle_state = IDLE_INHALE;
+};
+static enum idle_anim_state current_idle_state = IDLE_INHALE;
 
 static uint32_t last_idle_update = 0;
 static const uint32_t IDLE_ANIMATION_INTERVAL = 750;  // 750ms between idle animation frames
@@ -170,10 +172,29 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
     lv_canvas_draw_rect(canvas, 0, 21, 68, 42, &rect_white_dsc);
     lv_canvas_draw_rect(canvas, 1, 22, 66, 40, &rect_black_dsc);
 
+    // Draw BLE profile circle in top left of WPM area
+    lv_draw_arc_dsc_t arc_dsc;
+    init_arc_dsc(&arc_dsc, LVGL_FOREGROUND, 2);
+    lv_draw_arc_dsc_t arc_dsc_filled;
+    init_arc_dsc(&arc_dsc_filled, LVGL_FOREGROUND, 9);
+    lv_draw_label_dsc_t label_dsc_black;
+    init_label_dsc(&label_dsc_black, LVGL_BACKGROUND, &lv_font_montserrat_18, LV_TEXT_ALIGN_CENTER);
+
+    int x = 13, y = 34;  // Position circle in top left of WPM area
+    lv_canvas_draw_arc(canvas, x, y, 11, 0, 360, &arc_dsc);
+    lv_canvas_draw_arc(canvas, x, y, 7, 0, 359, &arc_dsc_filled);
+
+    // Draw BLE profile number
+    char label[2];
+    snprintf(label, sizeof(label), "%" PRIu8, (uint8_t)(state->active_profile_index + 1));
+    lv_canvas_draw_text(canvas, x - 5, y - 8, 10, &label_dsc_black, label);
+
+    // Draw WPM text and graph
     char wpm_text[6] = {};
     snprintf(wpm_text, sizeof(wpm_text), "%d", state->wpm[9]);
     lv_canvas_draw_text(canvas, 42, 52, 24, &label_dsc_wpm, wpm_text);
 
+    // Draw WPM graph
     int max = 0;
     int min = 256;
 
@@ -197,48 +218,8 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
         points[i].y = 60 - (state->wpm[i] - min) * 36 / range;
     }
     lv_canvas_draw_line(canvas, points, 10, &line_dsc);
-    #endif
 
-    // Rotate canvas
-    rotate_canvas(canvas, cbuf);
-}
-
-static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
-    lv_obj_t *canvas = lv_obj_get_child(widget, 1);
-
-    lv_draw_rect_dsc_t rect_black_dsc;
-    init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
-    lv_draw_rect_dsc_t rect_white_dsc;
-    init_rect_dsc(&rect_white_dsc, LVGL_FOREGROUND);
-    lv_draw_arc_dsc_t arc_dsc;
-    init_arc_dsc(&arc_dsc, LVGL_FOREGROUND, 2);
-    lv_draw_arc_dsc_t arc_dsc_filled;
-    init_arc_dsc(&arc_dsc_filled, LVGL_FOREGROUND, 9);
-    lv_draw_label_dsc_t label_dsc;
-    init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_18, LV_TEXT_ALIGN_CENTER);
-    lv_draw_label_dsc_t label_dsc_black;
-    init_label_dsc(&label_dsc_black, LVGL_BACKGROUND, &lv_font_montserrat_18, LV_TEXT_ALIGN_CENTER);
-    lv_draw_line_dsc_t line_dsc;
-    init_line_dsc(&line_dsc, LVGL_FOREGROUND, 1);
-
-    // Fill background
-    lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
-
-    // Draw single BLE profile circle at the top
-    int x = 13, y = 13;  // BLE circle position
-
-    lv_canvas_draw_arc(canvas, x, y, 13, 0, 360, &arc_dsc);
-    lv_canvas_draw_arc(canvas, x, y, 9, 0, 359, &arc_dsc_filled);
-
-    // Draw profile number - just move up 2 more pixels
-    char label[2];  // Space for one digit plus null terminator
-    snprintf(label, sizeof(label), "%" PRIu8, (uint8_t)(state->active_profile_index + 1));
-    lv_canvas_draw_text(canvas, x - 6, y - 10, 12, &label_dsc_black, label);  // Keep black text
-
-    // Draw modifiers to the right of the BLE circle
-    draw_modifiers(canvas, x + 12, y);  // Move modifiers closer to BLE circle
-
-    // Calculate average WPM over last 5 seconds
+    // Calculate average WPM and update animation state
     int recent_wpm = 0;
     for (int i = 5; i < 10; i++) {
         recent_wpm += state->wpm[i];
@@ -256,7 +237,34 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
         current_idle_state = IDLE_EXHALE;
         last_idle_update = k_uptime_get_32();
     }
+    #endif
 
+    // Rotate canvas
+    rotate_canvas(canvas, cbuf);
+}
+
+static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
+    lv_obj_t *canvas = lv_obj_get_child(widget, 1);
+
+    lv_draw_rect_dsc_t rect_black_dsc;
+    init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
+    lv_draw_rect_dsc_t rect_white_dsc;
+    init_rect_dsc(&rect_white_dsc, LVGL_FOREGROUND);
+    lv_draw_line_dsc_t line_dsc;
+    init_line_dsc(&line_dsc, LVGL_FOREGROUND, 1);
+
+    // Fill background
+    lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
+
+    // Draw modifiers at the top - now they can use the full width
+    draw_modifiers(canvas, 0, 13);  // Adjust y position to match previous height
+
+    // Draw bongo cat animation frame
+    lv_canvas_draw_rect(canvas, 0, 28, 68, 38, &rect_black_dsc);
+    
+    lv_draw_img_dsc_t img_dsc;
+    lv_draw_img_dsc_init(&img_dsc);
+    
     // Determine which animation frame to use
     const lv_img_dsc_t *current_frame = &bongo_resting;  // Default to resting frame
     
@@ -283,7 +291,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
                     current_frame = &bongo_resting;
                     break;
                 default:
-                    current_frame = &bongo_resting;  // Handle any unexpected states
+                    current_frame = &bongo_resting;
                     break;
             }
         }
@@ -299,11 +307,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     // Reset key_released flag after handling
     key_released = false;
 
-    // Draw bongo cat animation frame - make the rectangle smaller and positioned only around the cat
-    lv_canvas_draw_rect(canvas, 0, 28, 68, 38, &rect_black_dsc);  // Just use black background
-    
-    lv_draw_img_dsc_t img_dsc;
-    lv_draw_img_dsc_init(&img_dsc);
+    // Draw the current animation frame
     lv_canvas_draw_img(canvas, 0, 28, current_frame, &img_dsc);
 
     // Rotate canvas

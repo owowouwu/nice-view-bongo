@@ -58,9 +58,9 @@ static struct modifier_symbol ms_win = {
 };
 
 struct modifier_symbol *modifier_symbols[] = {
-    &ms_win,
-    &ms_alt,
     &ms_control,
+    &ms_alt,
+    &ms_win,
     &ms_shift
 };
 #endif
@@ -137,8 +137,14 @@ void draw_modifiers(lv_obj_t *canvas, int x, int y) {
     lv_draw_line_dsc_t line_dsc;
     init_line_dsc(&line_dsc, LVGL_FOREGROUND, 2);
     
+    // Calculate starting x to center the modifiers
+    // Total width needed = 14 pixels * 4 modifiers = 56 pixels
+    // Canvas width = 68 pixels
+    // Left margin = (68 - 56) / 2 = 6 pixels
+    int start_x = 6;
+    
     for (int i = 0; i < NUM_SYMBOLS; i++) {
-        int icon_x = x + (i * 14);
+        int icon_x = start_x + (i * 14);
         
         // Draw the modifier icon
         lv_canvas_draw_img(canvas, icon_x, y - 7, 
@@ -147,7 +153,7 @@ void draw_modifiers(lv_obj_t *canvas, int x, int y) {
         if (modifier_symbols[i]->is_active) {
             lv_point_t points[] = {
                 {icon_x, y + 4},
-                {icon_x + 12, y + 4}
+                {icon_x + 12, y + 4}  // Line is 12 pixels wide
             };
             lv_canvas_draw_line(canvas, points, 2, &line_dsc);
         }
