@@ -129,9 +129,6 @@ void draw_modifiers(lv_obj_t *canvas, int x, int y) {
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
     
-    // Remove recoloring - let icons use their natural colors
-    // The icons are already defined with the correct color palette in modifiers_sym.c
-    
     // Line descriptor for active modifiers
     lv_draw_line_dsc_t line_dsc;
     init_line_dsc(&line_dsc, LVGL_FOREGROUND, 2);
@@ -139,14 +136,15 @@ void draw_modifiers(lv_obj_t *canvas, int x, int y) {
     for (int i = 0; i < NUM_SYMBOLS; i++) {
         int icon_x = x + (i * 14);
         
-        // Draw the modifier icon with original colors
+        // Draw the modifier icon
         lv_canvas_draw_img(canvas, icon_x, y - 7, 
                           modifier_symbols[i]->symbol_dsc, &img_dsc);
         
+        // Draw underline when modifier IS active (pressed)
         if (modifier_symbols[i]->is_active) {
             lv_point_t points[] = {
                 {icon_x, y + 4},
-                {icon_x + 12, y + 4}  // Line is 12 pixels wide
+                {icon_x + 12, y + 4}
             };
             lv_canvas_draw_line(canvas, points, 2, &line_dsc);
         }

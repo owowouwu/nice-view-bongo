@@ -593,10 +593,16 @@ static void modifier_status_update_cb(uint8_t state) {
 
 static uint8_t modifier_status_get_state(const zmk_event_t *_eh) {
     const struct zmk_modifiers_state_changed *mods_ev = as_zmk_modifiers_state_changed(_eh);
+    uint8_t mods;
+    
     if (mods_ev != NULL) {
-        return mods_ev->modifiers;  // Returns the new state where bits are SET when pressed
+        mods = mods_ev->modifiers;
+    } else {
+        mods = zmk_hid_get_explicit_mods();
     }
-    return zmk_hid_get_explicit_mods();
+    
+    // No need to invert - the bits should be SET (1) when pressed
+    return mods;
 }
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_modifier_status, uint8_t,
