@@ -129,27 +129,26 @@ void draw_modifiers(lv_obj_t *canvas, int x, int y) {
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
     
-    // Set icon color to foreground color (white in inverted mode, black in normal mode)
-    // This ensures icons are visible against the background
+    // Icons are 1-bit indexed where 0=white, 1=black
+    // Recolor them to match the current display mode (normal/inverted)
     img_dsc.recolor = LVGL_FOREGROUND;
     img_dsc.recolor_opa = LV_OPA_COVER;
     
-    // Line descriptor for active modifiers
+    // Line descriptor initialization is correct
     lv_draw_line_dsc_t line_dsc;
     init_line_dsc(&line_dsc, LVGL_FOREGROUND, 2);
     
     for (int i = 0; i < NUM_SYMBOLS; i++) {
-        int icon_x = x + (i * 14);
+        int icon_x = x + (i * 14);  // Spacing matches icon width
         
-        // Always draw the modifier icon in foreground color
+        // Drawing at correct position
         lv_canvas_draw_img(canvas, icon_x, y - 7, 
                           modifier_symbols[i]->symbol_dsc, &img_dsc);
         
-        // Draw line ONLY when modifier IS active (pressed)
         if (modifier_symbols[i]->is_active) {
             lv_point_t points[] = {
                 {icon_x, y + 4},
-                {icon_x + 12, y + 4}
+                {icon_x + 12, y + 4}  // Line width matches icon width
             };
             lv_canvas_draw_line(canvas, points, 2, &line_dsc);
         }
