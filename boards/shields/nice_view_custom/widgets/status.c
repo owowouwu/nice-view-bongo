@@ -428,40 +428,41 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_layer_status, struct layer_status_state, laye
 
 ZMK_SUBSCRIPTION(widget_layer_status, zmk_layer_state_changed);
 
-static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_state state) {
-    uint32_t current_time = k_uptime_get_32();
-    bool is_animation_update = state.is_animation_update;
-
-    // Only update WPM array on the second, unless this is an animation update
-    if (!is_animation_update && (current_time - last_wpm_update >= WPM_UPDATE_INTERVAL)) {
-        // Update WPM array
-        for (int i = 0; i < 9; i++) {
-            widget->state.wpm[i] = widget->state.wpm[i + 1];
-        }
-        widget->state.wpm[9] = state.wpm;
-        last_wpm_update = current_time;
-        
-        // Update top display with new WPM data
-        draw_top(widget->obj, widget->cbuf, &widget->state);
-    }
-
-    // Only update key states if this was triggered by a key event
-    if (state.is_key_event) {
-        key_pressed = state.key_pressed;
-        key_released = !state.key_pressed;
-        
-        // Force redraw on every key event
-        draw_middle(widget->obj, widget->cbuf2, &widget->state);
-    } else if (is_animation_update) {
-        // This is an animation update, just redraw the middle section
-        draw_middle(widget->obj, widget->cbuf2, &widget->state);
-    }
+static void process_keypress_event(bool is_pressed, struct zmk_widget_status *widget) {
+    // Update keypress state for bongo cat animation
+    key_pressed = is_pressed;
+    key_released = !is_pressed;
+    
+    // Force redraw middle section to update both bongo cat and modifiers
+    draw_middle(widget->obj, widget->cbuf2, &widget->state);
 }
 
 static void wpm_status_update_cb(struct wpm_status_state state) {
     struct zmk_widget_status *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) { 
-        set_wpm_status(widget, state); 
+        // Only update WPM array on the second, unless this is an animation update
+        uint32_t current_time = k_uptime_get_32();
+        bool is_animation_update = state.is_animation_update;
+
+        if (!is_animation_update && (current_time - last_wpm_update >= WPM_UPDATE_INTERVAL)) {
+            // Update WPM array
+            for (int i = 0; i < 9; i++) {
+                widget->state.wpm[i] = widget->state.wpm[i + 1];
+            }
+            widget->state.wpm[9] = state.wpm;
+            last_wpm_update = current_time;
+            
+            // Update top display with new WPM data
+            draw_top(widget->obj, widget->cbuf, &widget->state);
+        }
+
+        // Handle keypress events separately
+        if (state.is_key_event) {
+            process_keypress_event(state.key_pressed, widget);
+        } else if (is_animation_update) {
+            // This is an animation update, just redraw the middle section
+            draw_middle(widget->obj, widget->cbuf2, &widget->state);
+        }
     }
 }
 
@@ -474,6 +475,7 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
     
     bool is_animation_update = false;
     bool is_key_event = false;
+    bool key_is_pressed = false;
 
     // Update WPM if this is a WPM event
     if (wpm_ev != NULL) {
@@ -496,13 +498,7 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
     // Update key state if this is a position event
     if (pos_ev != NULL) {
         is_key_event = true;
-        if (pos_ev->state > 0) {
-            key_pressed = true;
-            key_released = false;
-        } else {
-            key_pressed = false;
-            key_released = true;
-        }
+        key_is_pressed = pos_ev->state > 0;
     }
 
     return (struct wpm_status_state){
@@ -511,9 +507,9 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
                        wpm_history[4], wpm_history[5], wpm_history[6], wpm_history[7],
                        wpm_history[8], wpm_history[9]},
         .animation_state = current_anim_state,
-        .key_pressed = key_pressed,
+        .key_pressed = key_is_pressed,
         .is_key_event = is_key_event,
-        .is_animation_update = is_animation_update  // Add this to the struct
+        .is_animation_update = is_animation_update
     };
 }
 
@@ -521,60 +517,6 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_wpm_status, struct wpm_status_state,
                           wpm_status_update_cb, wpm_status_get_state)
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_wpm_state_changed);
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_position_state_changed);
-
-static void animation_work_handler(struct k_work *work) {
-    uint32_t current_time = k_uptime_get_32();
-    
-    // Add check for timeout in furious mode
-    if (current_anim_state == ANIM_STATE_FRENZIED && 
-        (current_time - last_wpm_update > WPM_UPDATE_INTERVAL * 2)) {  // No typing for 2 seconds
-        current_anim_state = ANIM_STATE_CASUAL;
-        current_idle_state = IDLE_INHALE;
-        last_idle_update = current_time;
-        breathing_interval_adjustment = get_random_adjustment();
-    }
-    
-    // Only update animation if enough time has passed
-    if (current_time - last_idle_update > IDLE_ANIMATION_INTERVAL) {
-        last_idle_update = current_time;
-        
-        // Progress animation state
-        switch (current_idle_state) {
-            case IDLE_INHALE:
-                current_idle_state = IDLE_REST1;
-                break;
-            case IDLE_REST1:
-                current_idle_state = IDLE_EXHALE;
-                break;
-            case IDLE_EXHALE:
-                current_idle_state = IDLE_REST2;
-                if (leaving_furious) {
-                    leaving_furious = false;
-                }
-                break;
-            case IDLE_REST2:
-                current_idle_state = IDLE_INHALE;
-                // Get random adjustment for next breathing cycle
-                if (!leaving_furious) {
-                    breathing_interval_adjustment = get_random_adjustment();
-                }
-                break;
-        }
-        
-        // Trigger redraw
-        struct zmk_widget_status *widget;
-        SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-            draw_middle(widget->obj, widget->cbuf2, &widget->state);
-        }
-    }
-    
-    // Schedule next check
-    uint32_t next_interval = IDLE_ANIMATION_INTERVAL;
-    if (current_idle_state == IDLE_INHALE) {
-        next_interval += breathing_interval_adjustment;
-    }
-    k_work_schedule(&animation_work, K_MSEC(next_interval / 2));
-}
 
 static void set_modifiers(struct zmk_widget_status *widget, uint8_t mods) {
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
@@ -596,7 +538,23 @@ static void set_modifiers(struct zmk_widget_status *widget, uint8_t mods) {
 static void modifier_status_update_cb(uint8_t state) {
     struct zmk_widget_status *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        set_modifiers(widget, state);
+        // Update the modifiers
+        for (int i = 0; i < NUM_SYMBOLS; i++) {
+            bool was_active = modifier_symbols[i]->is_active;
+            modifier_symbols[i]->is_active = (state & modifier_symbols[i]->modifier) != 0;
+#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
+            if (was_active != modifier_symbols[i]->is_active) {
+                LOG_INF("Modifier %d changed: %d -> %d", i, was_active, modifier_symbols[i]->is_active);
+            }
+#endif
+        }
+        widget->state.modifiers = state;
+        
+        // Only redraw if this wasn't triggered by a keypress event
+        // as keypress events will already trigger a redraw
+        if (!key_pressed && !key_released) {
+            draw_middle(widget->obj, widget->cbuf2, &widget->state);
+        }
     }
 }
 
@@ -621,8 +579,70 @@ static uint8_t modifier_status_get_state(const zmk_event_t *_eh) {
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_modifier_status, uint8_t,
                           modifier_status_update_cb, modifier_status_get_state)
-ZMK_SUBSCRIPTION(widget_modifier_status, zmk_position_state_changed);   // For bongo cat animation
-ZMK_SUBSCRIPTION(widget_modifier_status, zmk_modifiers_state_changed);  // For modifier icons
+ZMK_SUBSCRIPTION(widget_modifier_status, zmk_modifiers_state_changed);
+
+static void animation_work_handler(struct k_work *work) {
+    uint32_t current_time = k_uptime_get_32();
+    
+    // Add check for timeout in furious mode
+    if (current_anim_state == ANIM_STATE_FRENZIED && 
+        (current_time - last_wpm_update > WPM_UPDATE_INTERVAL * 2)) {  // No typing for 2 seconds
+        current_anim_state = ANIM_STATE_CASUAL;
+        current_idle_state = IDLE_INHALE;
+        last_idle_update = current_time;
+        breathing_interval_adjustment = get_random_adjustment();
+    }
+    
+    // Only update animation if enough time has passed
+    bool animation_updated = false;
+    if (current_time - last_idle_update > IDLE_ANIMATION_INTERVAL) {
+        last_idle_update = current_time;
+        animation_updated = true;
+        
+        // Progress animation state
+        switch (current_idle_state) {
+            case IDLE_INHALE:
+                current_idle_state = IDLE_REST1;
+                break;
+            case IDLE_REST1:
+                current_idle_state = IDLE_EXHALE;
+                break;
+            case IDLE_EXHALE:
+                current_idle_state = IDLE_REST2;
+                if (leaving_furious) {
+                    leaving_furious = false;
+                }
+                break;
+            case IDLE_REST2:
+                current_idle_state = IDLE_INHALE;
+                // Get random adjustment for next breathing cycle
+                if (!leaving_furious) {
+                    breathing_interval_adjustment = get_random_adjustment();
+                }
+                break;
+        }
+        
+        // Create a fake wpm state change event to trigger a redraw
+        struct wpm_status_state state = {
+            .wpm = zmk_wpm_get_state(),
+            .is_animation_update = true,
+            .is_key_event = false,
+            .key_pressed = false
+        };
+        
+        struct zmk_widget_status *widget;
+        SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+            set_wpm_status(widget, state);
+        }
+    }
+    
+    // Schedule next check
+    uint32_t next_interval = IDLE_ANIMATION_INTERVAL;
+    if (current_idle_state == IDLE_INHALE) {
+        next_interval += breathing_interval_adjustment;
+    }
+    k_work_schedule(&animation_work, K_MSEC(next_interval / 2));
+}
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
@@ -641,12 +661,15 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
     sys_slist_append(&widgets, &widget->node);
+    
+    // Initialize widget listeners
     widget_battery_status_init();
     widget_output_status_init();
     widget_layer_status_init();
     widget_wpm_status_init();
     widget_modifier_status_init();
 
+    // Initialize animation worker
     k_work_init_delayable(&animation_work, animation_work_handler);
     k_work_schedule(&animation_work, K_MSEC(IDLE_ANIMATION_INTERVAL));
 
@@ -655,6 +678,11 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
         modifier_symbols[i]->is_active = false;
     }
     widget->state.modifiers = 0;
+    
+    // Force initial draw of all sections
+    draw_top(widget->obj, widget->cbuf, &widget->state);
+    draw_middle(widget->obj, widget->cbuf2, &widget->state);
+    draw_bottom(widget->obj, widget->cbuf3, &widget->state);
 
     return 0;
 }
