@@ -472,13 +472,34 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
     
     const struct zmk_wpm_state_changed *wpm_ev = as_zmk_wpm_state_changed(eh);
     const struct zmk_position_state_changed *pos_ev = as_zmk_position_state_changed(eh);
-    const struct zmk_modifiers_state_changed *mods_ev = as_zmk_modifiers_state_changed(eh);
     
     bool is_animation_update = false;
     bool is_key_event = false;
     bool key_is_pressed = false;
 
-    // Update WPM if this is a WPM event
+    // Test: Set all modifiers active when 'z' is pressed
+    if (pos_ev != NULL) {
+        is_key_event = true;
+        key_is_pressed = pos_ev->state > 0;
+        
+        // Check if this is position 25 (typically 'z' on QWERTY)
+        if (pos_ev->position == 25) {
+#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
+            LOG_INF("Z key event: %d", pos_ev->state);
+#endif
+            struct zmk_widget_status *widget;
+            SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+                // Set all modifiers active when Z is pressed
+                for (int i = 0; i < NUM_SYMBOLS; i++) {
+                    modifier_symbols[i]->is_active = pos_ev->state > 0;
+                }
+                // Force redraw of middle section
+                draw_middle(widget->obj, widget->cbuf2, &widget->state);
+            }
+        }
+    }
+
+    // Rest of the function remains the same...
     if (wpm_ev != NULL) {
         current_wpm = wpm_ev->state;
         
@@ -491,22 +512,6 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
                 wpm_history[i] = wpm_history[i + 1];
             }
             wpm_history[9] = current_wpm;
-        }
-    }
-
-    // Update key state if this is a position event
-    if (pos_ev != NULL) {
-        is_key_event = true;
-        key_is_pressed = pos_ev->state > 0;
-    }
-
-    // Update modifier state if this is a modifier event
-    if (mods_ev != NULL) {
-        struct zmk_widget_status *widget;
-        SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-            widget->state.modifiers = mods_ev->modifiers;
-            // Force a redraw of the middle section for modifier changes
-            draw_middle(widget->obj, widget->cbuf2, &widget->state);
         }
     }
 
@@ -526,7 +531,6 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_wpm_status, struct wpm_status_state,
                           wpm_status_update_cb, wpm_status_get_state)
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_wpm_state_changed);
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_position_state_changed);
-ZMK_SUBSCRIPTION(widget_wpm_status, zmk_modifiers_state_changed);
 
 static void animation_work_handler(struct k_work *work) {
     uint32_t current_time = k_uptime_get_32();
