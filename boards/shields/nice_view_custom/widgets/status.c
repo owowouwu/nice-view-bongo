@@ -467,11 +467,12 @@ static void wpm_status_update_cb(struct wpm_status_state state) {
 }
 
 struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
-    static uint8_t wpm_history[10] = {0};  // Keep track of history between calls
-    static uint8_t current_wpm = 0;        // Keep track of current WPM between calls
+    static uint8_t wpm_history[10] = {0};
+    static uint8_t current_wpm = 0;
     
     const struct zmk_wpm_state_changed *wpm_ev = as_zmk_wpm_state_changed(eh);
     const struct zmk_position_state_changed *pos_ev = as_zmk_position_state_changed(eh);
+    const struct zmk_modifiers_state_changed *mods_ev = as_zmk_modifiers_state_changed(eh);
     
     bool is_animation_update = false;
     bool is_key_event = false;
@@ -481,12 +482,10 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
     if (wpm_ev != NULL) {
         current_wpm = wpm_ev->state;
         
-        // Check if this is an animation update
         if (k_uptime_get_32() - last_wpm_update < WPM_UPDATE_INTERVAL) {
             is_animation_update = true;
         }
         
-        // Only update history if this isn't an animation update
         if (!is_animation_update) {
             for (int i = 0; i < 9; i++) {
                 wpm_history[i] = wpm_history[i + 1];
@@ -499,6 +498,16 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
     if (pos_ev != NULL) {
         is_key_event = true;
         key_is_pressed = pos_ev->state > 0;
+    }
+
+    // Update modifier state if this is a modifier event
+    if (mods_ev != NULL) {
+        struct zmk_widget_status *widget;
+        SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+            widget->state.modifiers = mods_ev->modifiers;
+            // Force a redraw of the middle section for modifier changes
+            draw_middle(widget->obj, widget->cbuf2, &widget->state);
+        }
     }
 
     return (struct wpm_status_state){
@@ -517,66 +526,7 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_wpm_status, struct wpm_status_state,
                           wpm_status_update_cb, wpm_status_get_state)
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_wpm_state_changed);
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_position_state_changed);
-
-static void modifier_status_update_cb(uint8_t state) {
-    struct zmk_widget_status *widget;
-    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
-        LOG_INF("Updating modifiers: %02x", state);
-#endif
-        // Update the modifiers
-        bool any_changed = false;
-        for (int i = 0; i < NUM_SYMBOLS; i++) {
-            bool was_active = modifier_symbols[i]->is_active;
-            modifier_symbols[i]->is_active = (state & modifier_symbols[i]->modifier) != 0;
-            if (was_active != modifier_symbols[i]->is_active) {
-                any_changed = true;
-#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
-                LOG_INF("Modifier %d changed: %d -> %d", i, was_active, modifier_symbols[i]->is_active);
-#endif
-            }
-        }
-        
-        // Update state and redraw if anything changed
-        if (any_changed || widget->state.modifiers != state) {
-            widget->state.modifiers = state;
-            draw_middle(widget->obj, widget->cbuf2, &widget->state);
-        }
-    }
-}
-
-static uint8_t modifier_status_get_state(const zmk_event_t *eh) {
-    uint8_t mods;
-    
-    const struct zmk_modifiers_state_changed *mods_ev = as_zmk_modifiers_state_changed(eh);
-    const struct zmk_keycode_state_changed *keycode_ev = as_zmk_keycode_state_changed(eh);
-    
-    if (mods_ev != NULL) {
-#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
-        LOG_INF("Got modifier event: %02x", mods_ev->modifiers);
-#endif
-        mods = mods_ev->modifiers;
-    } else if (keycode_ev != NULL) {
-        // Handle modifier keys directly
-        mods = zmk_hid_get_explicit_mods() | zmk_hid_get_implicit_mods();
-#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
-        LOG_INF("Got keycode event, combined mods: %02x", mods);
-#endif
-    } else {
-        // Get current state if no event
-        mods = zmk_hid_get_explicit_mods() | zmk_hid_get_implicit_mods();
-#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
-        LOG_INF("No event, combined mods: %02x", mods);
-#endif
-    }
-    
-    return mods;
-}
-
-ZMK_DISPLAY_WIDGET_LISTENER(widget_modifier_status, uint8_t,
-                          modifier_status_update_cb, modifier_status_get_state)
-ZMK_SUBSCRIPTION(widget_modifier_status, zmk_modifiers_state_changed);
-ZMK_SUBSCRIPTION(widget_modifier_status, zmk_keycode_state_changed);
+ZMK_SUBSCRIPTION(widget_wpm_status, zmk_modifiers_state_changed);
 
 static void animation_work_handler(struct k_work *work) {
     uint32_t current_time = k_uptime_get_32();
@@ -664,7 +614,6 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget_output_status_init();
     widget_layer_status_init();
     widget_wpm_status_init();
-    widget_modifier_status_init();
 
     // Initialize animation worker
     k_work_init_delayable(&animation_work, animation_work_handler);
