@@ -575,16 +575,24 @@ static uint8_t modifier_status_get_state(const zmk_event_t *eh) {
     uint8_t mods;
     
     const struct zmk_modifiers_state_changed *mods_ev = as_zmk_modifiers_state_changed(eh);
+    const struct zmk_keycode_state_changed *keycode_ev = as_zmk_keycode_state_changed(eh);
+    
     if (mods_ev != NULL) {
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
         LOG_INF("Got modifier event: %02x", mods_ev->modifiers);
 #endif
         mods = mods_ev->modifiers;
+    } else if (keycode_ev != NULL) {
+        // Handle modifier keys directly
+        mods = zmk_hid_get_explicit_mods() | zmk_hid_get_implicit_mods();
+#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
+        LOG_INF("Got keycode event, combined mods: %02x", mods);
+#endif
     } else {
         // Get current state if no event
-        mods = zmk_hid_get_explicit_mods();
+        mods = zmk_hid_get_explicit_mods() | zmk_hid_get_implicit_mods();
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
-        LOG_INF("Got explicit mods: %02x", mods);
+        LOG_INF("No event, combined mods: %02x", mods);
 #endif
     }
     
@@ -594,6 +602,7 @@ static uint8_t modifier_status_get_state(const zmk_event_t *eh) {
 ZMK_DISPLAY_WIDGET_LISTENER(widget_modifier_status, uint8_t,
                           modifier_status_update_cb, modifier_status_get_state)
 ZMK_SUBSCRIPTION(widget_modifier_status, zmk_modifiers_state_changed);
+ZMK_SUBSCRIPTION(widget_modifier_status, zmk_keycode_state_changed);
 
 static void animation_work_handler(struct k_work *work) {
     uint32_t current_time = k_uptime_get_32();
