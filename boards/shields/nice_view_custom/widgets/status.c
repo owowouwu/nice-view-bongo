@@ -99,7 +99,10 @@ static struct k_work_delayable animation_work;
 static bool keys_active = false;
 static uint32_t last_key_event = 0;
 static struct k_work_delayable modifier_work;
-static const uint32_t MODIFIER_CHECK_INTERVAL = 50;  // 50ms between checks
+static const uint32_t MODIFIER_CHECK_INTERVAL = 20;  // 20ms between checks
+
+static uint32_t last_keypress_time = 0;
+static const uint32_t WPM_PAUSE_TIMEOUT = 10000;  // 10 seconds in ms
 
 static int32_t get_random_adjustment(void) {
     // Initialize seed with time on first call
@@ -452,11 +455,36 @@ static void process_keypress_event(bool is_pressed, struct zmk_widget_status *wi
 static void wpm_status_update_cb(struct wpm_status_state state) {
     struct zmk_widget_status *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) { 
-        // Only update WPM array on the second, unless this is an animation update
         uint32_t current_time = k_uptime_get_32();
         bool is_animation_update = state.is_animation_update;
 
-        if (!is_animation_update && (current_time - last_wpm_update >= WPM_UPDATE_INTERVAL)) {
+        // Update last keypress time if this is a key event
+        if (state.is_key_event) {
+            last_keypress_time = current_time;
+            process_keypress_event(state.key_pressed, widget);
+        }
+
+        // Check if we should update WPM
+        bool should_update_wpm = false;
+        if (!is_animation_update) {
+            // Update if enough time has passed since last update
+            if (current_time - last_wpm_update >= WPM_UPDATE_INTERVAL) {
+                // Only update if either:
+                // 1. Less than 10 seconds since last keypress
+                // 2. Not all values are zero yet
+                bool has_non_zero = false;
+                for (int i = 0; i < 10; i++) {
+                    if (widget->state.wpm[i] > 0) {
+                        has_non_zero = true;
+                        break;
+                    }
+                }
+                
+                should_update_wpm = (current_time - last_keypress_time < WPM_PAUSE_TIMEOUT) || has_non_zero;
+            }
+        }
+
+        if (should_update_wpm) {
             // Update WPM array
             for (int i = 0; i < 9; i++) {
                 widget->state.wpm[i] = widget->state.wpm[i + 1];
@@ -468,11 +496,8 @@ static void wpm_status_update_cb(struct wpm_status_state state) {
             draw_top(widget->obj, widget->cbuf, &widget->state);
         }
 
-        // Handle keypress events separately
-        if (state.is_key_event) {
-            process_keypress_event(state.key_pressed, widget);
-        } else if (is_animation_update) {
-            // This is an animation update, just redraw the middle section
+        // Handle animation updates
+        if (is_animation_update) {
             draw_middle(widget->obj, widget->cbuf2, &widget->state);
         }
     }
@@ -630,7 +655,7 @@ static void animation_work_handler(struct k_work *work) {
 static void modifier_work_handler(struct k_work *work) {
     uint32_t current_time = k_uptime_get_32();
     
-    // If no keys are active and it's been 50ms since last key event, stop checking
+    // If no keys are active and it's been 20ms since last key event, stop checking
     if (!keys_active && (current_time - last_key_event > MODIFIER_CHECK_INTERVAL)) {
         return;
     }
