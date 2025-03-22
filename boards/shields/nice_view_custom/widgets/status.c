@@ -466,32 +466,6 @@ static void wpm_status_update_cb(struct wpm_status_state state) {
     }
 }
 
-static void set_wpm_status(struct zmk_widget_status *widget, struct wpm_status_state state) {
-    uint32_t current_time = k_uptime_get_32();
-    bool is_animation_update = state.is_animation_update;
-
-    // Only update WPM array on the second, unless this is an animation update
-    if (!is_animation_update && (current_time - last_wpm_update >= WPM_UPDATE_INTERVAL)) {
-        // Update WPM array
-        for (int i = 0; i < 9; i++) {
-            widget->state.wpm[i] = widget->state.wpm[i + 1];
-        }
-        widget->state.wpm[9] = state.wpm;
-        last_wpm_update = current_time;
-        
-        // Update top display with new WPM data
-        draw_top(widget->obj, widget->cbuf, &widget->state);
-    }
-
-    // Handle keypress events separately
-    if (state.is_key_event) {
-        process_keypress_event(state.key_pressed, widget);
-    } else if (is_animation_update) {
-        // This is an animation update, just redraw the middle section
-        draw_middle(widget->obj, widget->cbuf2, &widget->state);
-    }
-}
-
 struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
     static uint8_t wpm_history[10] = {0};  // Keep track of history between calls
     static uint8_t current_wpm = 0;        // Keep track of current WPM between calls
@@ -645,18 +619,18 @@ static void animation_work_handler(struct k_work *work) {
                 break;
         }
         
-        // Create a fake wpm state change event to trigger a redraw
+        // Create a wpm state change event to trigger a redraw
         struct wpm_status_state state = {
             .wpm = zmk_wpm_get_state(),
+            .wpm_history = {0}, // Not used for animation updates
+            .animation_state = current_anim_state,
             .is_animation_update = true,
             .is_key_event = false,
             .key_pressed = false
         };
         
-        struct zmk_widget_status *widget;
-        SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-            set_wpm_status(widget, state);
-        }
+        // Use the existing update callback
+        wpm_status_update_cb(state);
     }
     
     // Schedule next check
