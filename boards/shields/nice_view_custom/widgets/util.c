@@ -8,16 +8,6 @@
 #include <zephyr/kernel.h>
 #include "util.h"
 
-// Add these to match ZMK's modifier definitions
-#define MOD_LCTL BIT(0)
-#define MOD_LSFT BIT(1)
-#define MOD_LALT BIT(2)
-#define MOD_LGUI BIT(3)
-#define MOD_RCTL BIT(4)
-#define MOD_RSFT BIT(5)
-#define MOD_RALT BIT(6)
-#define MOD_RGUI BIT(7)
-
 LV_IMG_DECLARE(bolt);
 LV_IMG_DECLARE(control_icon);
 LV_IMG_DECLARE(shift_icon);
@@ -30,23 +20,23 @@ LV_IMG_DECLARE(win_icon);
 #endif
 
 static struct modifier_symbol ms_control = {
-    .modifier = BIT(0) | BIT(4),  // MOD_LCTL | MOD_RCTL
+    .modifier = MOD_LCTL | MOD_RCTL,
     .symbol_dsc = &control_icon,
 };
 
 static struct modifier_symbol ms_shift = {
-    .modifier = BIT(1) | BIT(5),  // MOD_LSFT | MOD_RSFT
+    .modifier = MOD_LSFT | MOD_RSFT,
     .symbol_dsc = &shift_icon,
 };
 
 #if IS_ENABLED(CONFIG_ZMK_DONGLE_DISPLAY_MAC_MODIFIERS)
 static struct modifier_symbol ms_opt = {
-    .modifier = BIT(2) | BIT(6),  // MOD_LALT | MOD_RALT
+    .modifier = MOD_LALT | MOD_RALT,
     .symbol_dsc = &opt_icon,
 };
 
 static struct modifier_symbol ms_cmd = {
-    .modifier = BIT(3) | BIT(7),  // MOD_LGUI | MOD_RGUI
+    .modifier = MOD_LGUI | MOD_RGUI,
     .symbol_dsc = &cmd_icon,
 };
 
@@ -58,12 +48,12 @@ struct modifier_symbol *modifier_symbols[] = {
 };
 #else
 static struct modifier_symbol ms_alt = {
-    .modifier = BIT(2) | BIT(6),  // MOD_LALT | MOD_RALT
+    .modifier = MOD_LALT | MOD_RALT,
     .symbol_dsc = &alt_icon,
 };
 
 static struct modifier_symbol ms_win = {
-    .modifier = BIT(3) | BIT(7),  // MOD_LGUI | MOD_RGUI
+    .modifier = MOD_LGUI | MOD_RGUI,
     .symbol_dsc = &win_icon,
 };
 
