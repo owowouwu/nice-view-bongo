@@ -591,65 +591,87 @@ ZMK_SUBSCRIPTION(widget_wpm_status, zmk_keycode_state_changed);
 
 static void animation_work_handler(struct k_work *work) {
     uint32_t current_time = k_uptime_get_32();
+    bool needs_redraw = false;
     
-    // Add check for timeout in furious mode
-    if (current_anim_state == ANIM_STATE_FRENZIED && 
-        (current_time - last_wpm_update > WPM_UPDATE_INTERVAL * 2)) {  // No typing for 2 seconds
-        current_anim_state = ANIM_STATE_CASUAL;
-        current_idle_state = IDLE_INHALE;
-        last_idle_update = current_time;
-        breathing_interval_adjustment = get_random_adjustment();
+    // Check if we should update WPM (every second)
+    if (current_time - last_wpm_update >= WPM_UPDATE_INTERVAL) {
+        struct zmk_widget_status *widget;
+        SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+            // Always update if there are non-zero values or within timeout period
+            bool has_non_zero = false;
+            for (int i = 0; i < 10; i++) {
+                if (widget->state.wpm[i] > 0) {
+                    has_non_zero = true;
+                    break;
+                }
+            }
+
+            // Continue updating until all values are zero
+            if (has_non_zero || (current_time - last_keypress_time < WPM_PAUSE_TIMEOUT)) {
+                // Shift values left
+                for (int i = 0; i < 9; i++) {
+                    widget->state.wpm[i] = widget->state.wpm[i + 1];
+                }
+                widget->state.wpm[9] = zmk_wpm_get_state();
+                last_wpm_update = current_time;
+                
+                // Redraw WPM section
+                draw_top(widget->obj, widget->cbuf, &widget->state);
+            }
+        }
     }
     
-    // Only update animation if enough time has passed
-    bool animation_updated = false;
+    // Check if we should update idle animation
     if (current_time - last_idle_update > IDLE_ANIMATION_INTERVAL) {
         last_idle_update = current_time;
-        animation_updated = true;
         
-        // Progress animation state
+        // Check for timeout in furious mode
+        if (current_anim_state == ANIM_STATE_FRENZIED && 
+            (current_time - last_keypress_time > WPM_UPDATE_INTERVAL * 2)) {
+            current_anim_state = ANIM_STATE_CASUAL;
+            current_idle_state = IDLE_INHALE;
+            breathing_interval_adjustment = get_random_adjustment();
+            needs_redraw = true;
+        }
+        
+        // Always progress idle animation state - removed the key_pressed check
         switch (current_idle_state) {
             case IDLE_INHALE:
                 current_idle_state = IDLE_REST1;
+                needs_redraw = true;
                 break;
             case IDLE_REST1:
                 current_idle_state = IDLE_EXHALE;
+                needs_redraw = true;
                 break;
             case IDLE_EXHALE:
                 current_idle_state = IDLE_REST2;
                 if (leaving_furious) {
                     leaving_furious = false;
                 }
+                needs_redraw = true;
                 break;
             case IDLE_REST2:
                 current_idle_state = IDLE_INHALE;
-                // Get random adjustment for next breathing cycle
                 if (!leaving_furious) {
                     breathing_interval_adjustment = get_random_adjustment();
                 }
+                needs_redraw = true;
                 break;
         }
         
-        // Create a wpm state change event to trigger a redraw
-        struct wpm_status_state state = {
-            .wpm = zmk_wpm_get_state(),
-            .wpm_history = {0}, // Not used for animation updates
-            .animation_state = current_anim_state,
-            .is_animation_update = true,
-            .is_key_event = false,
-            .key_pressed = false
-        };
-        
-        // Use the existing update callback
-        wpm_status_update_cb(state);
+        // If animation state changed, trigger a redraw
+        if (needs_redraw) {
+            struct zmk_widget_status *widget;
+            SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+                draw_middle(widget->obj, widget->cbuf2, &widget->state);
+            }
+        }
     }
     
-    // Schedule next check
-    uint32_t next_interval = IDLE_ANIMATION_INTERVAL;
-    if (current_idle_state == IDLE_INHALE) {
-        next_interval += breathing_interval_adjustment;
-    }
-    k_work_schedule(&animation_work, K_MSEC(next_interval / 2));
+    // Schedule next check - use shorter interval for smooth updates
+    uint32_t next_check = MIN(WPM_UPDATE_INTERVAL / 4, IDLE_ANIMATION_INTERVAL / 2);
+    k_work_schedule(&animation_work, K_MSEC(next_check));
 }
 
 static void modifier_work_handler(struct k_work *work) {
