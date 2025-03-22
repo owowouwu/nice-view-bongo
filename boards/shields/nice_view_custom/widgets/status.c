@@ -96,6 +96,11 @@ static const uint32_t WPM_UPDATE_INTERVAL = 1000;  // Update WPM every 1000ms (1
 
 static struct k_work_delayable animation_work;
 
+static bool keys_active = false;
+static uint32_t last_key_event = 0;
+static struct k_work_delayable modifier_work;
+static const uint32_t MODIFIER_CHECK_INTERVAL = 50;  // 50ms between checks
+
 static int32_t get_random_adjustment(void) {
     // Initialize seed with time on first call
     static bool seed_initialized = false;
@@ -433,7 +438,14 @@ static void process_keypress_event(bool is_pressed, struct zmk_widget_status *wi
     key_pressed = is_pressed;
     key_released = !is_pressed;
     
-    // Force redraw middle section to update both bongo cat and modifiers
+    // Track key state and start/stop modifier checking
+    keys_active = is_pressed;
+    last_key_event = k_uptime_get_32();
+    if (is_pressed) {
+        k_work_schedule(&modifier_work, K_MSEC(MODIFIER_CHECK_INTERVAL));
+    }
+    
+    // Force redraw middle section
     draw_middle(widget->obj, widget->cbuf2, &widget->state);
 }
 
@@ -467,7 +479,11 @@ static void wpm_status_update_cb(struct wpm_status_state state) {
 }
 
 static uint8_t get_current_modifiers(void) {
-    return zmk_hid_get_explicit_mods();
+    uint8_t mods = zmk_hid_get_explicit_mods();
+#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
+    LOG_INF("Current mods: %02x", mods);
+#endif
+    return mods;
 }
 
 struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
@@ -488,13 +504,20 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
         SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
             uint8_t mods = get_current_modifiers();
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
-            LOG_INF("Modifier state: %02x", mods);
+            LOG_INF("Keycode event: keycode %d, state %d, mods: %02x", 
+                    keycode_ev->keycode, keycode_ev->state, mods);
 #endif
             // Only update and redraw if modifiers changed
             if (widget->state.modifiers != mods) {
                 widget->state.modifiers = mods;
                 for (int i = 0; i < NUM_SYMBOLS; i++) {
+                    bool was_active = modifier_symbols[i]->is_active;
                     modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
+#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
+                    if (was_active != modifier_symbols[i]->is_active) {
+                        LOG_INF("Modifier %d changed: %d -> %d", i, was_active, modifier_symbols[i]->is_active);
+                    }
+#endif
                 }
                 draw_middle(widget->obj, widget->cbuf2, &widget->state);
             }
@@ -604,6 +627,31 @@ static void animation_work_handler(struct k_work *work) {
     k_work_schedule(&animation_work, K_MSEC(next_interval / 2));
 }
 
+static void modifier_work_handler(struct k_work *work) {
+    uint32_t current_time = k_uptime_get_32();
+    
+    // If no keys are active and it's been 50ms since last key event, stop checking
+    if (!keys_active && (current_time - last_key_event > MODIFIER_CHECK_INTERVAL)) {
+        return;
+    }
+    
+    // Check modifier state
+    struct zmk_widget_status *widget;
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+        uint8_t mods = get_current_modifiers();
+        if (widget->state.modifiers != mods) {
+            widget->state.modifiers = mods;
+            for (int i = 0; i < NUM_SYMBOLS; i++) {
+                modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
+            }
+            draw_middle(widget->obj, widget->cbuf2, &widget->state);
+        }
+    }
+    
+    // Schedule next check
+    k_work_schedule(&modifier_work, K_MSEC(MODIFIER_CHECK_INTERVAL));
+}
+
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
     lv_obj_set_size(widget->obj, 160, 68);
@@ -630,6 +678,7 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
 
     // Initialize animation worker
     k_work_init_delayable(&animation_work, animation_work_handler);
+    k_work_init_delayable(&modifier_work, modifier_work_handler);
     k_work_schedule(&animation_work, K_MSEC(IDLE_ANIMATION_INTERVAL));
 
     // Initialize modifier states to inactive (no underlines)
