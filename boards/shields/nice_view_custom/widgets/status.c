@@ -278,13 +278,17 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     
     if (current_anim_state == ANIM_STATE_CASUAL) {
         if (key_pressed) {
+            // Always alternate frames on key press
             current_frame = use_first_frame ? &bongo_casualright : &bongo_casualleft;
-        } else if (key_released) {
+            use_first_frame = !use_first_frame;  // Toggle frame on each press
+        } else if (key_released && !keys_active) {
+            // Only return to resting when all keys are released
             current_frame = &bongo_resting;
-            use_first_frame = !use_first_frame;
-            current_idle_state = IDLE_INHALE;
+            use_first_frame = !use_first_frame;  // Toggle for next press
+            current_idle_state = IDLE_INHALE;  // Start breathing cycle
             last_idle_update = k_uptime_get_32();
-        } else {
+        } else if (!keys_active) {
+            // Only show breathing animation when no keys are pressed
             switch (current_idle_state) {
                 case IDLE_INHALE:
                     current_frame = &bongo_inhale;
@@ -302,6 +306,9 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
                     current_frame = &bongo_resting;
                     break;
             }
+        } else {
+            // Keep the last animation frame while keys are still held
+            current_frame = use_first_frame ? &bongo_casualright : &bongo_casualleft;
         }
     } else { // ANIM_STATE_FRENZIED
         if (key_pressed || key_released) {
