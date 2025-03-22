@@ -466,40 +466,42 @@ static void wpm_status_update_cb(struct wpm_status_state state) {
     }
 }
 
+static uint8_t get_current_modifiers(void) {
+    return zmk_hid_get_explicit_mods();
+}
+
 struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
     static uint8_t wpm_history[10] = {0};
     static uint8_t current_wpm = 0;
     
     const struct zmk_wpm_state_changed *wpm_ev = as_zmk_wpm_state_changed(eh);
     const struct zmk_position_state_changed *pos_ev = as_zmk_position_state_changed(eh);
+    const struct zmk_keycode_state_changed *keycode_ev = as_zmk_keycode_state_changed(eh);
     
     bool is_animation_update = false;
     bool is_key_event = false;
     bool key_is_pressed = false;
 
-    // Test: Set all modifiers active when 'z' is pressed
-    if (pos_ev != NULL) {
-        is_key_event = true;
-        key_is_pressed = pos_ev->state > 0;
-        
-        // Check if this is position 25 (typically 'z' on QWERTY)
-        if (pos_ev->position == 25) {
+    // Update modifier state if this is a keycode event
+    if (keycode_ev != NULL) {
+        struct zmk_widget_status *widget;
+        SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+            uint8_t mods = get_current_modifiers();
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
-            LOG_INF("Z key event: %d", pos_ev->state);
+            LOG_INF("Modifier state: %02x", mods);
 #endif
-            struct zmk_widget_status *widget;
-            SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-                // Set all modifiers active when Z is pressed
+            // Only update and redraw if modifiers changed
+            if (widget->state.modifiers != mods) {
+                widget->state.modifiers = mods;
                 for (int i = 0; i < NUM_SYMBOLS; i++) {
-                    modifier_symbols[i]->is_active = pos_ev->state > 0;
+                    modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
                 }
-                // Force redraw of middle section
                 draw_middle(widget->obj, widget->cbuf2, &widget->state);
             }
         }
     }
 
-    // Rest of the function remains the same...
+    // Update WPM if this is a WPM event
     if (wpm_ev != NULL) {
         current_wpm = wpm_ev->state;
         
@@ -513,6 +515,12 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
             }
             wpm_history[9] = current_wpm;
         }
+    }
+
+    // Update key state if this is a position event
+    if (pos_ev != NULL) {
+        is_key_event = true;
+        key_is_pressed = pos_ev->state > 0;
     }
 
     return (struct wpm_status_state){
@@ -531,6 +539,7 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_wpm_status, struct wpm_status_state,
                           wpm_status_update_cb, wpm_status_get_state)
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_wpm_state_changed);
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_position_state_changed);
+ZMK_SUBSCRIPTION(widget_wpm_status, zmk_keycode_state_changed);
 
 static void animation_work_handler(struct k_work *work) {
     uint32_t current_time = k_uptime_get_32();
