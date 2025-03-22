@@ -544,56 +544,44 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_wpm_status, struct wpm_status_state,
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_wpm_state_changed);
 ZMK_SUBSCRIPTION(widget_wpm_status, zmk_position_state_changed);
 
-static void set_modifiers(struct zmk_widget_status *widget, uint8_t mods) {
-#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
-    LOG_INF("Setting modifiers: %02x", mods);
-#endif
-    for (int i = 0; i < NUM_SYMBOLS; i++) {
-        bool was_active = modifier_symbols[i]->is_active;
-        modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
-#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
-        if (was_active != modifier_symbols[i]->is_active) {
-            LOG_INF("Modifier %d changed: %d -> %d", i, was_active, modifier_symbols[i]->is_active);
-        }
-#endif
-    }
-    widget->state.modifiers = mods;
-    draw_middle(widget->obj, widget->cbuf2, &widget->state);
-}
-
 static void modifier_status_update_cb(uint8_t state) {
     struct zmk_widget_status *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
+        LOG_INF("Updating modifiers: %02x", state);
+#endif
         // Update the modifiers
+        bool any_changed = false;
         for (int i = 0; i < NUM_SYMBOLS; i++) {
             bool was_active = modifier_symbols[i]->is_active;
             modifier_symbols[i]->is_active = (state & modifier_symbols[i]->modifier) != 0;
-#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
             if (was_active != modifier_symbols[i]->is_active) {
+                any_changed = true;
+#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
                 LOG_INF("Modifier %d changed: %d -> %d", i, was_active, modifier_symbols[i]->is_active);
-            }
 #endif
+            }
         }
-        widget->state.modifiers = state;
         
-        // Only redraw if this wasn't triggered by a keypress event
-        // as keypress events will already trigger a redraw
-        if (!key_pressed && !key_released) {
+        // Update state and redraw if anything changed
+        if (any_changed || widget->state.modifiers != state) {
+            widget->state.modifiers = state;
             draw_middle(widget->obj, widget->cbuf2, &widget->state);
         }
     }
 }
 
-static uint8_t modifier_status_get_state(const zmk_event_t *_eh) {
-    const struct zmk_modifiers_state_changed *mods_ev = as_zmk_modifiers_state_changed(_eh);
+static uint8_t modifier_status_get_state(const zmk_event_t *eh) {
     uint8_t mods;
     
+    const struct zmk_modifiers_state_changed *mods_ev = as_zmk_modifiers_state_changed(eh);
     if (mods_ev != NULL) {
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
         LOG_INF("Got modifier event: %02x", mods_ev->modifiers);
 #endif
         mods = mods_ev->modifiers;
     } else {
+        // Get current state if no event
         mods = zmk_hid_get_explicit_mods();
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
         LOG_INF("Got explicit mods: %02x", mods);
