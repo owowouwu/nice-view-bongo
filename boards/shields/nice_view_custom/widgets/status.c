@@ -291,16 +291,12 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
             use_first_frame = !use_first_frame;
             current_frame = last_active_frame;
         } else if (key_released && !keys_active) {
-            // Add delay before breathing
-            if (k_uptime_get_32() - last_key_event > MODIFIER_CHECK_INTERVAL * 2) {
-                current_frame = &bongo_resting;
-                last_active_frame = &bongo_resting;
-                current_idle_state = IDLE_REST1;  // Start with REST1 to show resting frame
-                last_idle_update = k_uptime_get_32();
-                key_pressed = false;  // Ensure we reset key_pressed
-            } else {
-                current_frame = last_active_frame;
-            }
+            // When transitioning to idle, show resting frame first
+            current_frame = &bongo_resting;
+            last_active_frame = &bongo_resting;
+            current_idle_state = IDLE_REST1;  // Start with REST1 to ensure we show resting frame
+            last_idle_update = k_uptime_get_32();
+            key_pressed = false;
         } else if (key_released) {
             // A key was released but others are still active
             current_frame = last_active_frame;
@@ -308,8 +304,9 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
             // Keys are still being held
             current_frame = last_active_frame;
         } else if (k_uptime_get_32() - last_key_event <= MODIFIER_CHECK_INTERVAL * 2) {
-            // Short delay after key release, show last frame
-            current_frame = last_active_frame;
+            // Short delay after key release, show resting frame
+            current_frame = &bongo_resting;
+            last_active_frame = &bongo_resting;
         } else {
             // No keys pressed - breathing animation
             switch (current_idle_state) {
