@@ -467,7 +467,7 @@ ZMK_SUBSCRIPTION(widget_output_status, zmk_ble_active_profile_changed);
 static void set_layer_status(struct zmk_widget_status *widget, struct layer_status_state state) {
     widget->state.layer_index = state.index;
     widget->state.layer_label = state.label;
-
+    // Make sure we only draw the bottom section for layer updates
     draw_bottom(widget->obj, widget->cbuf3, &widget->state);
 }
 
@@ -502,6 +502,7 @@ static void process_keypress_event(bool is_pressed, struct zmk_widget_status *wi
     if (is_pressed) {
         k_work_schedule(&modifier_work, K_MSEC(MODIFIER_CHECK_INTERVAL));
     }
+    // Only draw the middle section where modifiers and bongo cat live
     draw_middle(widget->obj, widget->cbuf2, &widget->state);
 }
 
@@ -520,6 +521,7 @@ static void modifier_work_handler(struct k_work *work) {
             for (int i = 0; i < NUM_SYMBOLS; i++) {
                 modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
             }
+            // Only draw the middle section for modifier updates
             draw_middle(widget->obj, widget->cbuf2, &widget->state);
         }
     }
