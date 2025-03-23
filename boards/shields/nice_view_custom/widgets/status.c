@@ -297,7 +297,9 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
             current_idle_state = IDLE_REST2;  // Start with REST2 so next state will be INHALE
             last_idle_update = k_uptime_get_32() - IDLE_ANIMATION_INTERVAL;  // Force immediate transition
             key_pressed = false;
-            key_released = false;  // Add this line to clear the released state
+            key_released = false;
+            // Add this to ensure we start breathing animation
+            last_key_event = 0;  // Clear the key event time to allow immediate idle transition
         } else if (key_released) {
             // A key was released but others are still active
             current_frame = last_active_frame;
@@ -680,7 +682,7 @@ static void animation_work_handler(struct k_work *work) {
         }
         
         // Only progress idle animation if we're not actively typing
-        if (!keys_active && (current_time - last_key_event > MODIFIER_CHECK_INTERVAL * 2)) {
+        if (!keys_active) {  // Remove the last_key_event check to allow immediate transition
             switch (current_idle_state) {
                 case IDLE_INHALE:
                     current_idle_state = IDLE_REST1;
