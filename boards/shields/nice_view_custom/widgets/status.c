@@ -107,6 +107,8 @@ static const lv_img_dsc_t *last_active_frame = &bongo_resting;
 static uint32_t last_key_event = 0;
 static struct k_work_delayable modifier_work;
 static const uint32_t MODIFIER_CHECK_INTERVAL = 20;  // 20ms between checks
+static const uint32_t KEY_DEBOUNCE_INTERVAL = 20;    // 20ms debounce interval
+static bool debounce_check_scheduled = false;        // Flag to track if debounce check is scheduled
 
 static uint32_t last_keypress_time = 0;
 static const uint32_t WPM_PAUSE_TIMEOUT = 10000;  // 10 seconds in ms
@@ -290,26 +292,12 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
             }
             use_first_frame = !use_first_frame;
             current_frame = last_active_frame;
-        } else if (key_released && !keys_active) {
-            // When transitioning to idle, show resting frame first
-            current_frame = &bongo_resting;
-            last_active_frame = &bongo_resting;
-            current_idle_state = IDLE_REST2;  // Start with REST2 so next state will be INHALE
-            last_idle_update = k_uptime_get_32() - IDLE_ANIMATION_INTERVAL;  // Force immediate transition
-            key_pressed = false;
-            key_released = false;
-            // Add this to ensure we start breathing animation
-            last_key_event = 0;  // Clear the key event time to allow immediate idle transition
-        } else if (key_released) {
-            // A key was released but others are still active
-            current_frame = last_active_frame;
         } else if (keys_active) {
             // Keys are still being held
             current_frame = last_active_frame;
-        } else if (k_uptime_get_32() - last_key_event <= MODIFIER_CHECK_INTERVAL * 2) {
-            // Short delay after key release, show resting frame
-            current_frame = &bongo_resting;
-            last_active_frame = &bongo_resting;
+        } else if (k_uptime_get_32() - last_key_event <= KEY_DEBOUNCE_INTERVAL) {
+            // During debounce period, show last active frame
+            current_frame = last_active_frame;
         } else {
             // No keys pressed - breathing animation
             switch (current_idle_state) {
@@ -337,8 +325,8 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
             current_frame = last_active_frame;
         } else if (keys_active) {
             current_frame = last_active_frame;
-        } else if (k_uptime_get_32() - last_key_event <= MODIFIER_CHECK_INTERVAL * 2) {
-            // Short delay after key release, show last frame
+        } else if (k_uptime_get_32() - last_key_event <= KEY_DEBOUNCE_INTERVAL) {
+            // During debounce period, show last active frame
             current_frame = last_active_frame;
         } else {
             // No keys pressed - show breathing animation
@@ -493,15 +481,19 @@ static void process_keypress_event(bool is_pressed, struct zmk_widget_status *wi
     if (is_pressed) {
         active_keys++;
         keys_active = true;
+        last_key_event = k_uptime_get_32();
+        // Schedule immediate debounce check
+        k_work_schedule(&modifier_work, K_MSEC(KEY_DEBOUNCE_INTERVAL));
+        debounce_check_scheduled = true;
     } else {
         if (active_keys > 0) active_keys--;
         keys_active = (active_keys > 0);
+        last_key_event = k_uptime_get_32();
+        // Schedule debounce check after release
+        k_work_schedule(&modifier_work, K_MSEC(KEY_DEBOUNCE_INTERVAL));
+        debounce_check_scheduled = true;
     }
     
-    last_key_event = k_uptime_get_32();
-    if (is_pressed) {
-        k_work_schedule(&modifier_work, K_MSEC(MODIFIER_CHECK_INTERVAL));
-    }
     // Only draw the middle section where modifiers and bongo cat live
     draw_middle(widget->obj, widget->cbuf2, &widget->state);
 }
@@ -509,10 +501,27 @@ static void process_keypress_event(bool is_pressed, struct zmk_widget_status *wi
 static void modifier_work_handler(struct k_work *work) {
     uint32_t current_time = k_uptime_get_32();
     
-    if (!keys_active && (current_time - last_key_event > MODIFIER_CHECK_INTERVAL)) {
-        return;
+    if (debounce_check_scheduled) {
+        debounce_check_scheduled = false;
+        
+        // If no keys are active and enough time has passed since last key event
+        if (!keys_active && (current_time - last_key_event >= KEY_DEBOUNCE_INTERVAL)) {
+            // Transition to resting state
+            struct zmk_widget_status *widget;
+            SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+                last_active_frame = &bongo_resting;
+                current_idle_state = IDLE_REST2;  // Start with REST2 so next state will be INHALE
+                last_idle_update = current_time - IDLE_ANIMATION_INTERVAL;  // Force immediate transition
+                draw_middle(widget->obj, widget->cbuf2, &widget->state);
+            }
+        } else if (keys_active) {
+            // Keys are still active, schedule another check
+            k_work_schedule(&modifier_work, K_MSEC(KEY_DEBOUNCE_INTERVAL));
+            debounce_check_scheduled = true;
+        }
     }
     
+    // Handle modifier updates
     struct zmk_widget_status *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
         uint8_t mods = get_current_modifiers();
@@ -521,13 +530,8 @@ static void modifier_work_handler(struct k_work *work) {
             for (int i = 0; i < NUM_SYMBOLS; i++) {
                 modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
             }
-            // Only draw the middle section for modifier updates
             draw_middle(widget->obj, widget->cbuf2, &widget->state);
         }
-    }
-    
-    if (keys_active) {
-        k_work_schedule(&modifier_work, K_MSEC(MODIFIER_CHECK_INTERVAL));
     }
 }
 
