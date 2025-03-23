@@ -150,13 +150,9 @@ void draw_modifiers(lv_obj_t *canvas, int x, int y) {
     init_line_dsc(&line_dsc, LVGL_FOREGROUND, 2);
     
     for (int i = 0; i < NUM_SYMBOLS; i++) {
-        int icon_x = x + (i * 16); // Increase spacing to 16px for better visibility
-        
-        // Draw the modifier icon
+        int icon_x = x + (i * 16);
         lv_canvas_draw_img(canvas, icon_x, y - 7, 
                           modifier_symbols[i]->symbol_dsc, &img_dsc);
-        
-        // Draw underline when modifier IS active (pressed)
         if (modifier_symbols[i]->is_active) {
             lv_point_t points[] = {
                 {icon_x, y + 4},

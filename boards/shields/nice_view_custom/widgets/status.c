@@ -96,13 +96,19 @@ static const uint32_t WPM_UPDATE_INTERVAL = 1000;  // Update WPM every 1000ms (1
 
 static struct k_work_delayable animation_work;
 
+static bool key_pressed = false;
+static bool key_released = false;
 static bool keys_active = false;
+static bool use_first_frame = true;
+static const lv_img_dsc_t *last_active_frame = &bongo_resting;
 static uint32_t last_key_event = 0;
 static struct k_work_delayable modifier_work;
 static const uint32_t MODIFIER_CHECK_INTERVAL = 20;  // 20ms between checks
 
 static uint32_t last_keypress_time = 0;
 static const uint32_t WPM_PAUSE_TIMEOUT = 10000;  // 10 seconds in ms
+
+static uint8_t active_keys = 0;  // Add at top with other static variables
 
 static int32_t get_random_adjustment(void) {
     // Initialize seed with time on first call
@@ -129,9 +135,19 @@ LV_IMG_DECLARE(bongo_furiousdown);
 LV_IMG_DECLARE(bongo_inhale);
 LV_IMG_DECLARE(bongo_exhale);
 
-static bool key_pressed = false;
-static bool key_released = false;
-static bool use_first_frame = true;  // Track which frame to use in the animation sequence
+struct status_state {
+    struct zmk_endpoint_instance selected_endpoint;
+    int active_profile_index;
+    bool active_profile_connected;
+    bool active_profile_bonded;
+    uint8_t modifiers;  // Stores current modifier state
+};
+
+struct modifier_symbol {    
+    uint8_t modifier;              // Modifier bit mask
+    const lv_img_dsc_t *symbol_dsc; // Icon to display
+    bool is_active;               // Current state
+};
 
 static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
     lv_obj_t *canvas = lv_obj_get_child(widget, 0);
@@ -239,7 +255,6 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
         current_anim_state = ANIM_STATE_FRENZIED;
         leaving_furious = false;
     } else if (current_anim_state == ANIM_STATE_FRENZIED) {
-        // We're leaving furious mode
         current_anim_state = ANIM_STATE_CASUAL;
         leaving_furious = true;
         current_idle_state = IDLE_EXHALE;
@@ -264,8 +279,8 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     // Fill background
     lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
 
-    // Draw modifiers at the top - now they can use the full width
-    draw_modifiers(canvas, 0, 13);  // Adjust y position to match previous height
+    // Draw modifiers at the top
+    draw_modifiers(canvas, 0, 13);
 
     // Draw bongo cat animation frame
     lv_canvas_draw_rect(canvas, 0, 28, 68, 38, &rect_black_dsc);
@@ -278,16 +293,32 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     
     if (current_anim_state == ANIM_STATE_CASUAL) {
         if (key_pressed) {
-            // Only alternate frames on new key press
-            current_frame = use_first_frame ? &bongo_casualright : &bongo_casualleft;
-            use_first_frame = !use_first_frame;  // Toggle for next press
+            // New key press - alternate animation frames
+            if (use_first_frame) {
+                last_active_frame = &bongo_casualright;
+            } else {
+                last_active_frame = &bongo_casualleft;
+            }
+            use_first_frame = !use_first_frame;
+            current_frame = last_active_frame;
         } else if (key_released && !keys_active) {
-            // Return to resting when last key is released
-            current_frame = &bongo_resting;
-            current_idle_state = IDLE_INHALE;
-            last_idle_update = k_uptime_get_32();
-        } else if (!keys_active) {
-            // Show breathing animation when no keys are pressed
+            // Add delay before breathing
+            if (k_uptime_get_32() - last_key_event > MODIFIER_CHECK_INTERVAL * 2) {
+                current_frame = &bongo_resting;
+                last_active_frame = &bongo_resting;
+                current_idle_state = IDLE_INHALE;
+                last_idle_update = k_uptime_get_32();
+            } else {
+                current_frame = last_active_frame;
+            }
+        } else if (key_released) {
+            // A key was released but others are still active
+            current_frame = last_active_frame;
+        } else if (keys_active) {
+            // Keys are still being held
+            current_frame = last_active_frame;
+        } else {
+            // No keys pressed - breathing animation
             switch (current_idle_state) {
                 case IDLE_INHALE:
                     current_frame = &bongo_inhale;
@@ -305,16 +336,33 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
                     current_frame = &bongo_resting;
                     break;
             }
-        } else {
-            // Keep the SAME frame while keys are held (don't alternate)
-            current_frame = current_frame;  // This maintains whatever the last frame was
         }
     } else { // ANIM_STATE_FRENZIED
         if (key_pressed || key_released) {
-            current_frame = use_first_frame ? &bongo_furiousup : &bongo_furiousdown;
+            last_active_frame = use_first_frame ? &bongo_furiousup : &bongo_furiousdown;
             use_first_frame = !use_first_frame;
+            current_frame = last_active_frame;
+        } else if (keys_active) {
+            current_frame = last_active_frame;
         } else {
-            current_frame = &bongo_resting;
+            // No keys pressed - show breathing animation
+            switch (current_idle_state) {
+                case IDLE_INHALE:
+                    current_frame = &bongo_inhale;
+                    break;
+                case IDLE_REST1:
+                    current_frame = &bongo_resting;
+                    break;
+                case IDLE_EXHALE:
+                    current_frame = &bongo_exhale;
+                    break;
+                case IDLE_REST2:
+                    current_frame = &bongo_resting;
+                    break;
+                default:
+                    current_frame = &bongo_resting;
+                    break;
+            }
         }
     }
 
@@ -443,25 +491,46 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_layer_status, struct layer_status_state, laye
 ZMK_SUBSCRIPTION(widget_layer_status, zmk_layer_state_changed);
 
 static void process_keypress_event(bool is_pressed, struct zmk_widget_status *widget) {
-    // Update keypress state for bongo cat animation
     key_pressed = is_pressed;
     key_released = !is_pressed;
     
-    // Track overall key state
     if (is_pressed) {
+        active_keys++;
         keys_active = true;
     } else {
-        // Check if this was the last key release
-        keys_active = false;  // Will be set true again if other keys are still pressed
+        if (active_keys > 0) active_keys--;
+        keys_active = (active_keys > 0);
     }
     
     last_key_event = k_uptime_get_32();
     if (is_pressed) {
         k_work_schedule(&modifier_work, K_MSEC(MODIFIER_CHECK_INTERVAL));
     }
-    
-    // Force redraw middle section
     draw_middle(widget->obj, widget->cbuf2, &widget->state);
+}
+
+static void modifier_work_handler(struct k_work *work) {
+    uint32_t current_time = k_uptime_get_32();
+    
+    if (!keys_active && (current_time - last_key_event > MODIFIER_CHECK_INTERVAL)) {
+        return;
+    }
+    
+    struct zmk_widget_status *widget;
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+        uint8_t mods = get_current_modifiers();
+        if (widget->state.modifiers != mods) {
+            widget->state.modifiers = mods;
+            for (int i = 0; i < NUM_SYMBOLS; i++) {
+                modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
+            }
+            draw_middle(widget->obj, widget->cbuf2, &widget->state);
+        }
+    }
+    
+    if (keys_active) {
+        k_work_schedule(&modifier_work, K_MSEC(MODIFIER_CHECK_INTERVAL));
+    }
 }
 
 static void wpm_status_update_cb(struct wpm_status_state state) {
@@ -540,21 +609,12 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
         struct zmk_widget_status *widget;
         SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
             uint8_t mods = get_current_modifiers();
-#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
-            LOG_INF("Keycode event: keycode %d, state %d, mods: %02x", 
-                    keycode_ev->keycode, keycode_ev->state, mods);
-#endif
             // Only update and redraw if modifiers changed
             if (widget->state.modifiers != mods) {
                 widget->state.modifiers = mods;
                 for (int i = 0; i < NUM_SYMBOLS; i++) {
                     bool was_active = modifier_symbols[i]->is_active;
                     modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
-#if IS_ENABLED(CONFIG_ZMK_WIDGET_MODIFIERS_DEBUG)
-                    if (was_active != modifier_symbols[i]->is_active) {
-                        LOG_INF("Modifier %d changed: %d -> %d", i, was_active, modifier_symbols[i]->is_active);
-                    }
-#endif
                 }
                 draw_middle(widget->obj, widget->cbuf2, &widget->state);
             }
@@ -684,31 +744,6 @@ static void animation_work_handler(struct k_work *work) {
     // Schedule next check - use shorter interval for smooth updates
     uint32_t next_check = MIN(WPM_UPDATE_INTERVAL / 4, IDLE_ANIMATION_INTERVAL / 2);
     k_work_schedule(&animation_work, K_MSEC(next_check));
-}
-
-static void modifier_work_handler(struct k_work *work) {
-    uint32_t current_time = k_uptime_get_32();
-    
-    // If no keys are active and it's been 20ms since last key event, stop checking
-    if (!keys_active && (current_time - last_key_event > MODIFIER_CHECK_INTERVAL)) {
-        return;
-    }
-    
-    // Check modifier state
-    struct zmk_widget_status *widget;
-    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        uint8_t mods = get_current_modifiers();
-        if (widget->state.modifiers != mods) {
-            widget->state.modifiers = mods;
-            for (int i = 0; i < NUM_SYMBOLS; i++) {
-                modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
-            }
-            draw_middle(widget->obj, widget->cbuf2, &widget->state);
-        }
-    }
-    
-    // Schedule next check
-    k_work_schedule(&modifier_work, K_MSEC(MODIFIER_CHECK_INTERVAL));
 }
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
