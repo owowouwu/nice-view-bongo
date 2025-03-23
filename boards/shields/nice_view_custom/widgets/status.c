@@ -295,7 +295,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
             if (k_uptime_get_32() - last_key_event > MODIFIER_CHECK_INTERVAL * 2) {
                 current_frame = &bongo_resting;
                 last_active_frame = &bongo_resting;
-                current_idle_state = IDLE_INHALE;
+                current_idle_state = IDLE_REST1;  // Start with REST1 to show resting frame
                 last_idle_update = k_uptime_get_32();
                 key_pressed = false;  // Ensure we reset key_pressed
             } else {
@@ -336,6 +336,9 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
             use_first_frame = !use_first_frame;
             current_frame = last_active_frame;
         } else if (keys_active) {
+            current_frame = last_active_frame;
+        } else if (k_uptime_get_32() - last_key_event <= MODIFIER_CHECK_INTERVAL * 2) {
+            // Short delay after key release, show last frame
             current_frame = last_active_frame;
         } else {
             // No keys pressed - show breathing animation
