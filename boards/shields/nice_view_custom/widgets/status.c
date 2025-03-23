@@ -34,6 +34,9 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/events/modifiers_state_changed.h>
 #include <zmk/keys.h>
 
+// Add this near the top of the file, after the includes but before any function that uses it
+static uint8_t get_current_modifiers(void);
+
 // Add these with the other LV_IMG_DECLARE statements
 LV_IMG_DECLARE(control_icon);
 LV_IMG_DECLARE(shift_icon);
