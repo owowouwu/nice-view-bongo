@@ -695,30 +695,32 @@ static void animation_work_handler(struct k_work *work) {
             needs_redraw = true;
         }
         
-        // Always progress idle animation state - removed the key_pressed check
-        switch (current_idle_state) {
-            case IDLE_INHALE:
-                current_idle_state = IDLE_REST1;
-                needs_redraw = true;
-                break;
-            case IDLE_REST1:
-                current_idle_state = IDLE_EXHALE;
-                needs_redraw = true;
-                break;
-            case IDLE_EXHALE:
-                current_idle_state = IDLE_REST2;
-                if (leaving_furious) {
-                    leaving_furious = false;
-                }
-                needs_redraw = true;
-                break;
-            case IDLE_REST2:
-                current_idle_state = IDLE_INHALE;
-                if (!leaving_furious) {
-                    breathing_interval_adjustment = get_random_adjustment();
-                }
-                needs_redraw = true;
-                break;
+        // Only progress idle animation if we're not actively typing
+        if (!keys_active && (current_time - last_key_event > MODIFIER_CHECK_INTERVAL * 2)) {
+            switch (current_idle_state) {
+                case IDLE_INHALE:
+                    current_idle_state = IDLE_REST1;
+                    needs_redraw = true;
+                    break;
+                case IDLE_REST1:
+                    current_idle_state = IDLE_EXHALE;
+                    needs_redraw = true;
+                    break;
+                case IDLE_EXHALE:
+                    current_idle_state = IDLE_REST2;
+                    if (leaving_furious) {
+                        leaving_furious = false;
+                    }
+                    needs_redraw = true;
+                    break;
+                case IDLE_REST2:
+                    current_idle_state = IDLE_INHALE;
+                    if (!leaving_furious) {
+                        breathing_interval_adjustment = get_random_adjustment();
+                    }
+                    needs_redraw = true;
+                    break;
+            }
         }
         
         // If animation state changed, trigger a redraw
@@ -730,7 +732,7 @@ static void animation_work_handler(struct k_work *work) {
         }
     }
     
-    // Schedule next check - use shorter interval for smooth updates
+    // Schedule next check
     uint32_t next_check = MIN(WPM_UPDATE_INTERVAL / 4, IDLE_ANIMATION_INTERVAL / 2);
     k_work_schedule(&animation_work, K_MSEC(next_check));
 }
