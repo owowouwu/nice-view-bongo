@@ -200,7 +200,7 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
     // Draw BLE profile number
     char label[2];
     snprintf(label, sizeof(label), "%" PRIu8, (uint8_t)(state->active_profile_index + 1));
-    lv_canvas_draw_text(canvas, x - 5, y - 8, 10, &label_dsc_black, label);
+    lv_canvas_draw_text(canvas, x - 5, y - 10, 10, &label_dsc_black, label);
 
     // Draw WPM text and graph
     char wpm_text[6] = {};
