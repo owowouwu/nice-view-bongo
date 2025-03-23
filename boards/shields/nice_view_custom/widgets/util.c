@@ -7,16 +7,7 @@
 
 #include <zephyr/kernel.h>
 #include "util.h"
-
-// Add these to match ZMK's modifier definitions
-#define MOD_LCTL BIT(0)
-#define MOD_LSFT BIT(1)
-#define MOD_LALT BIT(2)
-#define MOD_LGUI BIT(3)
-#define MOD_RCTL BIT(4)
-#define MOD_RSFT BIT(5)
-#define MOD_RALT BIT(6)
-#define MOD_RGUI BIT(7)
+#include <dt-bindings/zmk/modifiers.h>
 
 LV_IMG_DECLARE(bolt);
 LV_IMG_DECLARE(control_icon);

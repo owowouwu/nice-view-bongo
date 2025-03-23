@@ -135,14 +135,6 @@ LV_IMG_DECLARE(bongo_furiousdown);
 LV_IMG_DECLARE(bongo_inhale);
 LV_IMG_DECLARE(bongo_exhale);
 
-struct status_state {
-    struct zmk_endpoint_instance selected_endpoint;
-    int active_profile_index;
-    bool active_profile_connected;
-    bool active_profile_bonded;
-    uint8_t modifiers;  // Stores current modifier state
-};
-
 struct modifier_symbol {    
     uint8_t modifier;              // Modifier bit mask
     const lv_img_dsc_t *symbol_dsc; // Icon to display
