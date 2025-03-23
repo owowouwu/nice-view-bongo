@@ -575,6 +575,14 @@ static void wpm_status_update_cb(struct wpm_status_state state) {
             widget->state.wpm[9] = state.wpm;
             last_wpm_update = current_time;
             
+            // Check if most recent WPM is zero
+            if (state.wpm == 0) {
+                current_anim_state = ANIM_STATE_CASUAL;
+                current_idle_state = IDLE_REST2;  // Start with REST2 so next state will be INHALE
+                last_idle_update = current_time - IDLE_ANIMATION_INTERVAL;  // Force immediate transition
+                last_active_frame = &bongo_resting;
+            }
+            
             // Update top display with new WPM data
             draw_top(widget->obj, widget->cbuf, &widget->state);
         }
@@ -665,8 +673,18 @@ static void animation_work_handler(struct k_work *work) {
                 for (int i = 0; i < 9; i++) {
                     widget->state.wpm[i] = widget->state.wpm[i + 1];
                 }
-                widget->state.wpm[9] = zmk_wpm_get_state();
+                uint8_t current_wpm = zmk_wpm_get_state();
+                widget->state.wpm[9] = current_wpm;
                 last_wpm_update = current_time;
+                
+                // Check if most recent WPM is zero
+                if (current_wpm == 0) {
+                    current_anim_state = ANIM_STATE_CASUAL;
+                    current_idle_state = IDLE_REST2;  // Start with REST2 so next state will be INHALE
+                    last_idle_update = current_time - IDLE_ANIMATION_INTERVAL;  // Force immediate transition
+                    last_active_frame = &bongo_resting;
+                    needs_redraw = true;
+                }
                 
                 // Redraw WPM section
                 draw_top(widget->obj, widget->cbuf, &widget->state);
