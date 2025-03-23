@@ -297,6 +297,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
                 last_active_frame = &bongo_resting;
                 current_idle_state = IDLE_INHALE;
                 last_idle_update = k_uptime_get_32();
+                key_pressed = false;  // Ensure we reset key_pressed
             } else {
                 current_frame = last_active_frame;
             }
@@ -305,6 +306,9 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
             current_frame = last_active_frame;
         } else if (keys_active) {
             // Keys are still being held
+            current_frame = last_active_frame;
+        } else if (k_uptime_get_32() - last_key_event <= MODIFIER_CHECK_INTERVAL * 2) {
+            // Short delay after key release, show last frame
             current_frame = last_active_frame;
         } else {
             // No keys pressed - breathing animation
