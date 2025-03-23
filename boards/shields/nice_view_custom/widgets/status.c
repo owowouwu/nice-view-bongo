@@ -294,8 +294,8 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
             // When transitioning to idle, show resting frame first
             current_frame = &bongo_resting;
             last_active_frame = &bongo_resting;
-            current_idle_state = IDLE_REST1;  // Start with REST1 to ensure we show resting frame
-            last_idle_update = k_uptime_get_32();
+            current_idle_state = IDLE_REST2;  // Start with REST2 so next state will be INHALE
+            last_idle_update = k_uptime_get_32() - IDLE_ANIMATION_INTERVAL;  // Force immediate transition
             key_pressed = false;
         } else if (key_released) {
             // A key was released but others are still active
