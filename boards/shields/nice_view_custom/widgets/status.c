@@ -135,12 +135,6 @@ LV_IMG_DECLARE(bongo_furiousdown);
 LV_IMG_DECLARE(bongo_inhale);
 LV_IMG_DECLARE(bongo_exhale);
 
-struct modifier_symbol {    
-    uint8_t modifier;              // Modifier bit mask
-    const lv_img_dsc_t *symbol_dsc; // Icon to display
-    bool is_active;               // Current state
-};
-
 static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
     lv_obj_t *canvas = lv_obj_get_child(widget, 0);
 
