@@ -598,30 +598,9 @@ struct wpm_status_state wpm_status_get_state(const zmk_event_t *eh) {
     bool is_key_event = false;
     bool key_is_pressed = false;
 
-    // Update modifier state if this is a keycode event
-    if (keycode_ev != NULL) {
-        struct zmk_widget_status *widget;
-        SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-            uint8_t mods = get_current_modifiers();
-            // Only update and redraw if modifiers changed
-            if (widget->state.modifiers != mods) {
-                widget->state.modifiers = mods;
-                for (int i = 0; i < NUM_SYMBOLS; i++) {
-                    bool was_active = modifier_symbols[i]->is_active;
-                    modifier_symbols[i]->is_active = (mods & modifier_symbols[i]->modifier) != 0;
-                }
-                draw_middle(widget->obj, widget->cbuf2, &widget->state);
-            }
-        }
-    }
-
     // Update WPM if this is a WPM event
     if (wpm_ev != NULL) {
         current_wpm = wpm_ev->state;
-        
-        if (k_uptime_get_32() - last_wpm_update < WPM_UPDATE_INTERVAL) {
-            is_animation_update = true;
-        }
         
         if (!is_animation_update) {
             for (int i = 0; i < 9; i++) {
