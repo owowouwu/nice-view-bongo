@@ -251,7 +251,19 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
         current_idle_state = IDLE_EXHALE;
         last_idle_update = k_uptime_get_32();
     }
+    #else
+    lv_draw_arc_dsc_t arc_dsc;
+    init_arc_dsc(&arc_dsc, LVGL_FOREGROUND, 2);
+    lv_draw_arc_dsc_t arc_dsc_filled;
+    init_arc_dsc(&arc_dsc_filled, LVGL_FOREGROUND, 9);
+    lv_draw_label_dsc_t label_dsc_black;
+    init_label_dsc(&label_dsc_black, LVGL_BACKGROUND, &lv_font_montserrat_18, LV_TEXT_ALIGN_CENTER);
+
+    int x = 34, y = 50;  // Position circle in top left of WPM area
+    lv_canvas_draw_arc(canvas, x, y, 11, 0, 360, &arc_dsc);
+    lv_canvas_draw_arc(canvas, x, y, 7, 0, 359, &arc_dsc_filled);
     #endif
+
 
     // Rotate canvas
     rotate_canvas(canvas, cbuf);
