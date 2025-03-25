@@ -271,7 +271,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
 
     // Draw modifiers at the top
-    draw_modifiers(canvas, 0, 13);
+    draw_modifiers(canvas, 2, 13);
 
     // Draw bongo cat animation frame
     lv_canvas_draw_rect(canvas, 0, 28, 68, 38, &rect_black_dsc);
